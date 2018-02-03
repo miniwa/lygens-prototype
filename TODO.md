@@ -1,0 +1,1 @@
+- Add HTTPS support to Client
