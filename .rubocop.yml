@@ -1,0 +1,13 @@
+Style/RedundantReturn:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Layout/IndentationWidth:
+  Width: 4
+
+Metrics/MethodLength:
+  CountComments: false
+  Max: 30
+
