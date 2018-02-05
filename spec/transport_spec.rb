@@ -61,14 +61,14 @@ RSpec.describe Lygens::Http::RestClientTransport do
         end
 
         context "when an unknown error occurs" do
-            it "should raise ConnectionError" do
+            it "should let the error pass" do
                 allow(@request_class).to receive(:execute).and_raise(
                     IndexError
                 )
 
                 expect do
                     @transport.make_request(@params)
-                end.to raise_error(Lygens::Http::ConnectionError)
+                end.to raise_error(IndexError)
             end
         end
     end

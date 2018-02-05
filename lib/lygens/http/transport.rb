@@ -82,15 +82,10 @@ module Lygens
                 begin
                     response = @request_class.execute(adapt_params(params))
                     return adapt_response(response)
-                rescue ArgumentError => e
-                    raise e
                 rescue RestClient::ExceptionWithResponse => e
                     return adapt_response(e.response)
                 rescue RestClient::Exception
                     raise ConnectionError, "A transport error has occured"
-                rescue StandardError
-                    raise ConnectionError, "An unknown error with the"\
-                    " connection has occured"
                 end
             end
         end
