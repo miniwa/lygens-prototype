@@ -45,6 +45,7 @@ PLATFORMS
 DEPENDENCIES
   rest-client!
   rspec!
+  rspec-mocks!
 
 BUNDLED WITH
    1.16.1

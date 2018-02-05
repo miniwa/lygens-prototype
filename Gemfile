@@ -3,4 +3,5 @@
 source "https://rubygems.org" do
     gem "rest-client"
     gem "rspec"
+    gem "rspec-mocks"
 end
