@@ -3,12 +3,74 @@ require "rest-client"
 
 RSpec.describe Lygens::Http::RestClientTransport do
     before(:each) do
-        @transport = Lygens::Http::RestClientTransport.new
         @params = {
             method: :get,
             url: "test.se"
         }
         @response = instance_double("RestClient::Response")
+        @request_class = class_double("RestClient::Request")
+        @transport = Lygens::Http::RestClientTransport.new(@request_class)
+    end
+
+    describe "#make_request" do
+        context "when no error occurs" do
+            it "should return a normal response" do
+                allow(@response).to receive(:code).and_return(200)
+                allow(@response).to receive(:headers).and_return({})
+                allow(@response).to receive(:cookies).and_return({})
+                allow(@response).to receive(:body).and_return(nil)
+
+                allow(@request_class).to receive(:execute).and_return(@response)
+
+                resp = @transport.make_request(@params)
+                expect(resp.code).to eq(200)
+                expect(resp.headers).to eq({})
+                expect(resp.cookies).to eq({})
+                expect(resp.body).to eq(nil)
+            end
+        end
+
+        context "when http error occurs" do
+            it "should return a normal response" do
+                allow(@response).to receive(:code).and_return(404)
+                allow(@response).to receive(:headers).and_return({})
+                allow(@response).to receive(:cookies).and_return({})
+                allow(@response).to receive(:body).and_return(nil)
+
+                error = RestClient::ExceptionWithResponse.new(@response)
+                allow(@request_class).to receive(:execute).and_raise(error)
+
+                resp = @transport.make_request(@params)
+                expect(resp.code).to eq(404)
+                expect(resp.headers).to eq({})
+                expect(resp.cookies).to eq({})
+                expect(resp.body).to eq(nil)
+            end
+        end
+
+        context "when a transport error occurs" do
+            it "should raise ConnectionError" do
+                allow(@request_class).to receive(:execute).and_raise(
+                    RestClient::Exception
+                )
+
+                expect do
+                    @transport.make_request(@params)
+                end.to raise_error(Lygens::Http::ConnectionError)
+            end
+        end
+
+        context "when an unknown error occurs" do
+            it "should raise ConnectionError" do
+                allow(@request_class).to receive(:execute).and_raise(
+                    IndexError
+                )
+
+                expect do
+                    @transport.make_request(@params)
+                end.to raise_error(Lygens::Http::ConnectionError)
+            end
+        end
     end
 
     describe "#adapt_params" do

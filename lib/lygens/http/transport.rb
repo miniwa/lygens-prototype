@@ -1,3 +1,5 @@
+require "lygens/http/error"
+
 module Lygens
     module Http
         # This class represents an abstract http transport
@@ -18,6 +20,11 @@ module Lygens
         # This class represents a http transport imlpementation using the
         # rest-client library
         class RestClientTransport < Transport
+            # Initializes the transport with the given request api
+            def initialize(request_class = RestClient::Request)
+                @request_class = request_class
+            end
+            
             # Returns the given hash of arguments as a hash in a format
             # rest-client expects.
             def adapt_params(params)
@@ -72,8 +79,19 @@ module Lygens
             # * +params+ - A hash containing a set of query parameters.
             # * +payload+ - A hash containing a set of payloads.
             def make_request(params)
-                response = RestClient::Request.execute(adapt_params(params))
-                return adapt_response(response)
+                begin
+                    response = @request_class.execute(adapt_params(params))
+                    return adapt_response(response)
+                rescue ArgumentError => e
+                    raise e
+                rescue RestClient::ExceptionWithResponse => e
+                    return adapt_response(e.response)
+                rescue RestClient::Exception
+                    raise ConnectionError, "A transport error has occured"
+                rescue StandardError
+                    raise ConnectionError, "An unknown error with the"\
+                    " connection has occured"
+                end
             end
         end
     end
