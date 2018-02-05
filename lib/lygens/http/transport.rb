@@ -48,6 +48,22 @@ module Lygens
                 return actual_params
             end
 
+            # Returns the given rest-client response as a +Response+.
+            def adapt_response(response)
+                formatted = Lygens::Http::Response.new(response.code)
+
+                response.headers.each do |key, value|
+                    formatted.headers[key] = value
+                end
+
+                response.cookies.each do |key, value|
+                    formatted.cookies[key] = value
+                end
+
+                formatted.body = response.body
+                return formatted
+            end
+
             # Makes a http request with the given parameters. The hash may
             # contain the following values:
             # * +url+ - The url to make the request to.
@@ -57,7 +73,7 @@ module Lygens
             # * +payload+ - A hash containing a set of payloads.
             def make_request(params)
                 response = RestClient::Request.execute(adapt_params(params))
-                return response
+                return adapt_response(response)
             end
         end
     end
