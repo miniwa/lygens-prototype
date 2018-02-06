@@ -13,8 +13,8 @@ module Lygens
                 super(Http::RestClientTransport.new)
             end
 
-            def get_thread(board, thread_no)
-                url = @host + "/#{board}/thread/#{thread_no}.json"
+            def get_thread(board, number)
+                url = @host + "/#{board}/thread/#{number}.json"
                 resp = make_request(url: url, method: :get)
                 json = JSON.parse(resp.body)
                 puts(json)
