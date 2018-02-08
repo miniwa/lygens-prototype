@@ -1,2 +1,4 @@
 bundler/
 .bundle/
+.vscode/
+/bin
