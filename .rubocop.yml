@@ -1,3 +1,11 @@
+AllCops:
+  Exclude:
+    - 'bundler/'
+    - "vendor/"
+
+Style/IfUnlessModifier:
+  Enabled: false
+
 Style/RedundantReturn:
   Enabled: false
 
