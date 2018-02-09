@@ -10,6 +10,7 @@ RSpec.describe Lygens::Model do
 
                 field :age do
                     key :years_old
+                    default 0
                 end
             end
 
@@ -17,15 +18,17 @@ RSpec.describe Lygens::Model do
             expect(name_field.name).to eq(:name)
             expect(name_field.key).to eq(:name)
             expect(name_field.required).to eq(true)
+            expect(name_field.default).to eq(nil)
 
             age_field = Person1.fields[1]
             expect(age_field.name).to eq(:age)
             expect(age_field.key).to eq(:years_old)
             expect(age_field.required).to eq(false)
+            expect(age_field.default).to eq(0)
         end
 
-        it "should have fields representing the definition"\
-        " that are assignable" do
+        it "should return a model that has assignable fields representing the"\
+        " definition" do
             Person2 = Lygens::Model.define do
                 field :name do
                 end
@@ -34,6 +37,35 @@ RSpec.describe Lygens::Model do
             person = Person2.new
             person.name = "test"
             expect(person.name).to eq("test")
+        end
+    end
+
+    describe "#new" do
+        context "when field has a default value" do
+            it "should be assigned a clone of that value at construction" do
+                hash = {
+                    "test" => 5
+                }
+
+                Person7 = Lygens::Model.define do
+                    field :age do
+                        default 0
+                    end
+
+                    field :dict do
+                        default hash
+                    end
+                end
+
+                person = Person7.new
+                expect(person.age).to eq(0)
+                expect(person.dict).to eq(hash)
+
+                # Check that the original value will not be modified
+                person.dict["test"] = 6
+                expect(person.dict["test"]).to eq(6)
+                expect(hash["test"]).to eq(5)
+            end
         end
     end
 

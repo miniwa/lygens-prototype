@@ -42,6 +42,12 @@ module Lygens
             return model
         end
 
+        def initialize
+            self.class.fields.each do |field|
+                send("#{field.name}=", field.default.clone)
+            end
+        end
+
         def parse(hash)
             self.class.fields.each do |field|
                 value = nil
@@ -64,8 +70,9 @@ module Lygens
             @name = name
             @key = name
             @required = false
+            @default = nil
         end
 
-        attr_accessor :name, :key, :required
+        attr_accessor :name, :key, :required, :default
     end
 end

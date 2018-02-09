@@ -31,6 +31,10 @@ module Lygens
             @field.key = value
         end
 
+        def default(value)
+            @field.default = value
+        end
+
         attr_reader :field
     end
 end
