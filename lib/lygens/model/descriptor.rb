@@ -1,6 +1,6 @@
 require "lygens/model/model"
 
-module Lygens
+module Lyg
     # Used as evaluation proxy when defining a model
     class ModelDescriptor
         def initialize

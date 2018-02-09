@@ -1,7 +1,5 @@
-module Lygens
-    module Http
-        # Indicates an error with the connection
-        class ConnectionError < StandardError
-        end
+module Lyg
+    # Indicates an error with the connection
+    class HttpConnectionError < StandardError
     end
 end

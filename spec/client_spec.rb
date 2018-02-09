@@ -1,10 +1,10 @@
 require "lygens/http/client"
 
-RSpec.describe Lygens::Http::Client do
+RSpec.describe Lyg::HttpClient do
     before(:each) do
-        @transport = double("Lygens::Http::Transport")
-        @client = Lygens::Http::Client.new(@transport)
-        @response = Lygens::Http::Response.new(200)
+        @transport = double("Lyg::HttpTransport")
+        @client = Lyg::HttpClient.new(@transport)
+        @response = Lyg::HttpResponse.new(200)
         @args = {
             url: "test.se",
             method: :get,
@@ -12,7 +12,7 @@ RSpec.describe Lygens::Http::Client do
             cookies: {}
         }
     end
-    
+
     describe "#make_request" do
         context "when called with only url and method" do
             it "should call the transport with only those parameters" do
@@ -32,7 +32,7 @@ RSpec.describe Lygens::Http::Client do
                 params = @args
                 params[:headers][:host] = "google.se"
                 params[:cookies][:cfid] = "test"
-                
+
                 @client.make_request(@args)
 
                 expect(@transport).to have_received(:make_request)
@@ -49,7 +49,7 @@ RSpec.describe Lygens::Http::Client do
                 params = @args
                 params[:headers][:host] = "test.se"
                 params[:cookies][:cfid] = "testtest"
-                
+
                 @client.make_request(params)
                 expect(@transport).to have_received(:make_request)
                     .with(params)
@@ -72,11 +72,11 @@ RSpec.describe Lygens::Http::Client do
             it "should raise ArgumentError" do
                 allow(@transport).to receive(:make_request).and_return(@response)
                 expect do
-                    @client.make_request({ url: "test.se" })
+                    @client.make_request(url: "test.se")
                 end.to raise_error(ArgumentError)
 
                 expect do
-                    @client.make_request({ method: :get })
+                    @client.make_request(method: :get)
                 end.to raise_error(ArgumentError)
             end
         end

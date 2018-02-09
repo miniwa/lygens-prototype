@@ -1,7 +1,7 @@
 require "lygens/http/transport"
 require "rest-client"
 
-RSpec.describe Lygens::Http::RestClientTransport do
+RSpec.describe Lyg::RestClientHttpTransport do
     before(:each) do
         @params = {
             method: :get,
@@ -9,7 +9,7 @@ RSpec.describe Lygens::Http::RestClientTransport do
         }
         @response = instance_double("RestClient::Response")
         @request_class = class_double("RestClient::Request")
-        @transport = Lygens::Http::RestClientTransport.new(@request_class)
+        @transport = Lyg::RestClientHttpTransport.new(@request_class)
     end
 
     describe "#make_request" do
@@ -56,7 +56,7 @@ RSpec.describe Lygens::Http::RestClientTransport do
 
                 expect do
                     @transport.make_request(@params)
-                end.to raise_error(Lygens::Http::ConnectionError)
+                end.to raise_error(Lyg::HttpConnectionError)
             end
         end
 

@@ -1,7 +1,7 @@
 require "lygens/model/error"
 require "lygens/model/descriptor"
 
-module Lygens
+module Lyg
     # Holds the definition methods for the model dsl
     class Model
         def self.define(&block)

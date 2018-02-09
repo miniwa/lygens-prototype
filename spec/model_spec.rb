@@ -1,9 +1,9 @@
 require "lygens/model/model"
 
-RSpec.describe Lygens::Model do
+RSpec.describe Lyg::Model do
     describe "#define" do
         it "should create a model with the proper fields" do
-            Person1 = Lygens::Model.define do
+            Person1 = Lyg::Model.define do
                 field :name do
                     required true
                 end
@@ -29,7 +29,7 @@ RSpec.describe Lygens::Model do
 
         it "should return a model that has assignable fields representing the"\
         " definition" do
-            Person2 = Lygens::Model.define do
+            Person2 = Lyg::Model.define do
                 field :name do
                 end
             end
@@ -47,7 +47,7 @@ RSpec.describe Lygens::Model do
                     "test" => 5
                 }
 
-                Person7 = Lygens::Model.define do
+                Person7 = Lyg::Model.define do
                     field :age do
                         default 0
                     end
@@ -71,7 +71,7 @@ RSpec.describe Lygens::Model do
 
     describe "#parse" do
         it "should parse a hash with all values correctly" do
-            Person3 = Lygens::Model.define do
+            Person3 = Lyg::Model.define do
                 field :name do
                 end
             end
@@ -85,7 +85,7 @@ RSpec.describe Lygens::Model do
 
         context "when non-required field is missing value" do
             it "should equal nil" do
-                Person4 = Lygens::Model.define do
+                Person4 = Lyg::Model.define do
                     field :name do
                     end
                 end
@@ -98,7 +98,7 @@ RSpec.describe Lygens::Model do
 
         context "when required field is missing value" do
             it "should raise SerializationError" do
-                Person5 = Lygens::Model.define do
+                Person5 = Lyg::Model.define do
                     field :name do
                         required true
                     end
@@ -109,13 +109,13 @@ RSpec.describe Lygens::Model do
                 }
                 expect do
                     Person5.parse(hash)
-                end.to raise_error(Lygens::SerializationError)
+                end.to raise_error(Lyg::SerializationError)
             end
         end
 
         context "when field has a key different from its name" do
             it "should parse values from the key instead" do
-                Person6 = Lygens::Model.define do
+                Person6 = Lyg::Model.define do
                     field :name do
                         key :first_name
                     end

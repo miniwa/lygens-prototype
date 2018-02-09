@@ -1,8 +1,8 @@
 require "lygens/http/response"
 
-RSpec.describe Lygens::Http::Response do
+RSpec.describe Lyg::HttpResponse do
     before(:each) do
-        @response = Lygens::Http::Response.new(200)
+        @response = Lyg::HttpResponse.new(200)
     end
 
     describe "#new" do
@@ -13,7 +13,7 @@ RSpec.describe Lygens::Http::Response do
         context "when given invalid status code" do
             it "should raise ArgumentError" do
                 expect do
-                    Lygens::Http::Response.new(268)
+                    Lyg::HttpResponse.new(268)
                 end.to raise_error(ArgumentError)
             end
         end
