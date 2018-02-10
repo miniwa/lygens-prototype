@@ -13,6 +13,13 @@
 # it.
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
+require "simplecov"
+SimpleCov.profiles.define "lygens" do
+    add_filter "bundler"
+    add_filter "spec"
+end
+
+SimpleCov.start "lygens"
 
 RSpec.configure do |config|
     config.expect_with :rspec do |expectations|
