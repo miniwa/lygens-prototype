@@ -1,6 +1,8 @@
+require "lygens/http/message"
+
 module Lyg
     # Represents a HTTP response
-    class HttpResponse
+    class HttpResponse < HttpMessage
         # A list of valid HTPP status codes
         VALID_CODES = (100..103).to_a + (200..208).to_a + [226] +
             (300..308).to_a + (400..418).to_a + (421..424).to_a +
@@ -12,19 +14,14 @@ module Lyg
                 raise ArgumentError, "Invalid HTTP status code"
             end
             @code = code
-            @cookies = {}
             @body = nil
-            @headers = {}
+
+            super()
         end
 
         # The HTTP status code of the response
         def code
             return @code
-        end
-
-        # Returns the cookies sent with the response as a hash
-        def cookies
-            return @cookies
         end
 
         # Returns the body of the the response, or nil if no body was
@@ -36,11 +33,6 @@ module Lyg
         # Assigns the body of the response
         def body=(body)
             @body = body
-        end
-
-        # Returs the headers of the response as a hash
-        def headers
-            return @headers
         end
     end
 end
