@@ -44,7 +44,13 @@ module Lyg
 
         def initialize
             self.class.fields.each do |field|
-                send("#{field.name}=", field.default.clone)
+                value = begin
+                            field.default.dup
+                        rescue TypeError
+                            field.default
+                        end
+
+                send("#{field.name}=", value)
             end
         end
 
