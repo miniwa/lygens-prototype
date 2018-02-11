@@ -33,8 +33,8 @@ module Lyg
             @field.key = value
         end
 
-        def default(value)
-            @field.default = value
+        def default(&block)
+            @field.default_block = block
         end
 
         attr_reader :field

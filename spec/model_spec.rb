@@ -10,7 +10,9 @@ RSpec.describe Lyg::Model do
 
                 field :age do
                     key :years_old
-                    default 0
+                    default do
+                        next 0
+                    end
                 end
 
                 field :email
@@ -52,16 +54,22 @@ RSpec.describe Lyg::Model do
         context "when field has a default value" do
             it "should be assigned a clone of that value at construction" do
                 hash = {
-                    "test" => 5
+                    "test" => {
+                        "test" => 1
+                    }
                 }
 
                 Person7 = Lyg::Model.define do
                     field :age do
-                        default 0
+                        default do
+                            next 0
+                        end
                     end
 
                     field :dict do
-                        default hash
+                        default do
+                            next {"test" => {"test" => 1}}
+                        end
                     end
                 end
 
@@ -70,9 +78,11 @@ RSpec.describe Lyg::Model do
                 expect(person.dict).to eq(hash)
 
                 # Check that the original value will not be modified
-                person.dict["test"] = 6
-                expect(person.dict["test"]).to eq(6)
-                expect(hash["test"]).to eq(5)
+                person.dict["test"]["test"] = 2
+                expect(person.dict["test"]["test"]).to eq(2)
+
+                person2 = Person7.new
+                expect(person2.dict["test"]["test"]).to eq(1)
             end
         end
     end

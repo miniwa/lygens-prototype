@@ -79,6 +79,15 @@ module Lyg
             @default = nil
         end
 
-        attr_accessor :name, :key, :required, :default
+        # Returns the default value for this field
+        def default
+            if @default_block.nil?
+                return nil
+            end
+            
+            return @default_block.call()
+        end
+
+        attr_accessor :name, :key, :required, :default_block
     end
 end
