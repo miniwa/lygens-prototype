@@ -10,7 +10,9 @@ module Lyg
 
         def field(name, &block)
             field_descriptor = FieldDescriptor.new(name)
-            field_descriptor.instance_eval(&block)
+            unless block.nil?
+                field_descriptor.instance_eval(&block)
+            end
             @class.fields.push(field_descriptor.field)
         end
 

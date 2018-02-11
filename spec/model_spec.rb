@@ -12,6 +12,8 @@ RSpec.describe Lyg::Model do
                     key :years_old
                     default 0
                 end
+
+                field :email
             end
 
             name_field = Person1.fields[0]
@@ -25,6 +27,12 @@ RSpec.describe Lyg::Model do
             expect(age_field.key).to eq(:years_old)
             expect(age_field.required).to eq(false)
             expect(age_field.default).to eq(0)
+
+            email_field = Person1.fields[2]
+            expect(email_field.name).to eq(:email)
+            expect(email_field.key).to eq(:email)
+            expect(email_field.required).to eq(false)
+            expect(email_field.default).to eq(nil)
         end
 
         it "should return a model that has assignable fields representing the"\
