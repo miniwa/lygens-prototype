@@ -14,7 +14,7 @@ module Lyg
                 raise ArgumentError, "Invalid HTTP status code"
             end
             @code = code
-            @body = nil
+            @content = nil
 
             super()
         end
@@ -24,15 +24,15 @@ module Lyg
             return @code
         end
 
-        # Returns the body of the the response, or nil if no body was
+        # Returns the content of the the response, or nil if no content was
         # included
-        def body
-            return @body
+        def content
+            return @content
         end
 
-        # Assigns the body of the response
-        def body=(body)
-            @body = body
+        # Assigns the content of the response
+        def content=(content)
+            @content = content
         end
     end
 end

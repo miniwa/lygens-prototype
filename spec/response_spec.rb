@@ -19,10 +19,10 @@ RSpec.describe Lyg::HttpResponse do
         end
     end
 
-    describe "#body" do
+    describe "#content" do
         it "should be assignable" do
-            @response.body = "test"
-            expect(@response.body).to eq("test")
+            @response.content = "test"
+            expect(@response.content).to eq("test")
         end
     end
 end

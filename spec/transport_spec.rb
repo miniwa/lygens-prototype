@@ -24,7 +24,7 @@ RSpec.describe Lyg::RestClientHttpTransport do
                 expect(resp.code).to eq(200)
                 expect(resp.headers).to eq({})
                 expect(resp.cookies).to eq({})
-                expect(resp.body).to eq(nil)
+                expect(resp.content).to eq(nil)
             end
         end
 
@@ -42,7 +42,7 @@ RSpec.describe Lyg::RestClientHttpTransport do
                 expect(resp.code).to eq(404)
                 expect(resp.headers).to eq({})
                 expect(resp.cookies).to eq({})
-                expect(resp.body).to eq(nil)
+                expect(resp.content).to eq(nil)
             end
         end
 
@@ -135,18 +135,18 @@ RSpec.describe Lyg::RestClientHttpTransport do
             cookies = {
                 "id" => "test"
             }
-            content = "[1, 2, 3]"
+            body = "[1, 2, 3]"
 
             allow(@response).to receive(:code).and_return(200)
             allow(@response).to receive(:raw_headers).and_return(headers)
             allow(@response).to receive(:cookies).and_return(cookies)
-            allow(@response).to receive(:body).and_return(content)
+            allow(@response).to receive(:body).and_return(body)
 
             result = @transport.adapt_response(@response)
             expect(result.code).to eq(200)
             expect(result.headers).to eq(headers)
             expect(result.cookies).to eq(cookies)
-            expect(result.body).to eq(content)
+            expect(result.content).to eq(body)
         end
     end
 end

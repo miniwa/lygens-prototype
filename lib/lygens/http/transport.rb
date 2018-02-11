@@ -48,7 +48,7 @@ module Lyg
                 formatted.cookies[key] = value
             end
 
-            formatted.body = response.body
+            formatted.content = response.body
             return formatted
         end
 
