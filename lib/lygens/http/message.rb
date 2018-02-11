@@ -1,7 +1,6 @@
 module Lyg
     # Baseclass for http messages
     class HttpMessage
-
         def initialize
             @cookies = {}
             @headers = {}

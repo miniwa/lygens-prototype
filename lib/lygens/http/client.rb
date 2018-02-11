@@ -24,30 +24,21 @@ module Lyg
             return @cookies
         end
 
-        # Makes a http request with the given parameters. The hash may
-        # contain the following values:
-        # * +url+ - The url to make the request to.
-        # * +method+ - The method to use when making the request.
-        # * +headers+ - A hash containing a set of headers.
-        # * +params+ - A hash containing a set of query parameters.
-        # * +payload+ - A hash containing a set of payloads.
-        def make_request(params)
-            unless params.key?(:url) && params.key?(:method)
-                raise ArgumentError, "Method and url are required"
+        # Executes a given +HttpRequest+ with the preset headers and cookies
+        # added to it.
+        def execute(request)
+            @headers.each do |key, value|
+                unless request.headers.key?(key)
+                    request.headers[key] = value
+                end
             end
-
-            actual = params.clone
-            actual[:headers] =  if params.key?(:headers)
-                                    @headers.merge(params[:headers])
-                                else
-                                    @headers.clone
-                                end
-            actual[:cookies] =  if params.key?(:cookies)
-                                    @cookies.merge(params[:cookies])
-                                else
-                                    @cookies.clone
-                                end
-            response = @transport.make_request(actual)
+            
+            @cookies.each do |key, value|
+                unless request.cookies.key?(key)
+                    request.cookies[key] = value
+                end
+            end
+            response = @transport.execute(request)
 
             if @autosave_cookies
                 response.cookies.each do |key, value|
