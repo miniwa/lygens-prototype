@@ -19,6 +19,20 @@ module Lyg
             super()
         end
 
+        # Returns the content of this response as an instance of given object
+        # type. Raises ParserError or ArgumentError on failure.
+        def parse_as(class_type)
+            if @content.nil?
+                raise ArgumentError, "Response does not contain content"
+            end
+
+            if @parser.nil?
+                raise ArgumentError, "Response does not have a parser assigned"
+            end
+
+            return @parser.parse_as(class_type, @content)
+        end
+
         # The HTTP status code of the response
         def code
             return @code
@@ -34,5 +48,7 @@ module Lyg
         def content=(content)
             @content = content
         end
+
+        attr_accessor :parser
     end
 end
