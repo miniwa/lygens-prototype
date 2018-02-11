@@ -4,7 +4,7 @@ module Lyg
     # This class represents an abstract http transport
     class HttpTransport
         # Executes the given +HttpRequest+
-        def execute(request)
+        def execute(_request)
             raise NotImplementedError, "Abstract execute called"
         end
     end

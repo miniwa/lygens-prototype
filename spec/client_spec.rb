@@ -33,7 +33,8 @@ RSpec.describe Lyg::HttpClient do
             end
         end
 
-        context "when called with both preset and argument headers or cookies" do
+        context "when called with both preset and argument headers or"\
+        " cookies" do
             it "should prioritize the argument" do
                 @client.headers["Host"] = "google.se"
                 @client.cookies["cfid"] = "test"

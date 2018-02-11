@@ -3,7 +3,7 @@ require "lygens/model/model"
 
 RSpec.describe Lyg::ObjectParser do
     before(:each) do
-        # Supress warnings about overwritten constant   
+        # Supress warnings about overwritten constant
         original_verbose = $VERBOSE
         $VERBOSE = nil
         Person = Lyg::Model.define do
@@ -34,7 +34,7 @@ RSpec.describe Lyg::ObjectParser do
 
         @parser = Lyg::ObjectParser.new
     end
-    
+
     describe "#parse_as" do
         context "when given hash" do
             it "should parse that hash as a single object" do
@@ -73,7 +73,7 @@ end
 
 RSpec.describe Lyg::ObjectParser do
     before(:each) do
-        # Supress warnings about overwritten constant   
+        # Supress warnings about overwritten constant
         original_verbose = $VERBOSE
         $VERBOSE = nil
         Person = Lyg::Model.define do
@@ -112,7 +112,7 @@ RSpec.describe Lyg::ObjectParser do
 
         @parser = Lyg::JsonParser.new
     end
-    
+
     describe "#parse_as" do
         context "when called with a string containing an object" do
             it "should parse that string as a single object" do

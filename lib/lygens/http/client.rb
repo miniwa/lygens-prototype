@@ -32,7 +32,7 @@ module Lyg
                     request.headers[key] = value
                 end
             end
-            
+
             @cookies.each do |key, value|
                 unless request.cookies.key?(key)
                     request.cookies[key] = value

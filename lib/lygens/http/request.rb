@@ -3,7 +3,7 @@ require "lygens/http/message"
 module Lyg
     # Represents an HTTP request
     class HttpRequest < HttpMessage
-        METHODS = [:get, :post, :put, :head, :delete, :options, :connect]
+        METHODS = [:get, :post, :put, :head, :delete, :options, :connect].freeze
         def initialize(method, url)
             unless METHODS.include?(method)
                 raise ArgumentError, "Invalid HTTP method"
@@ -12,7 +12,7 @@ module Lyg
             if url.nil?
                 raise ArgumentError, "Url is required"
             end
-            
+
             @method = method
             @url = url
             @parameters = {}
