@@ -67,8 +67,14 @@ module Lyg
         def parse(hash)
             self.class.fields.each do |field|
                 value = nil
-                if hash.key?(field.key.to_s)
-                    value = hash[field.key.to_s]
+                key = field.key.to_s
+                if hash.key?(key)
+                    value = if field.type.nil?
+                                hash[key]
+                            else
+                                # Field has a model field
+                                field.type.parse(hash[key])
+                            end
                 end
 
                 if value.nil? && field.required
@@ -87,6 +93,7 @@ module Lyg
             @key = name
             @required = false
             @default = nil
+            @type = nil
         end
 
         # Returns the default value for this field
@@ -94,10 +101,10 @@ module Lyg
             if @default_block.nil?
                 return nil
             end
-            
-            return @default_block.call()
+
+            return @default_block.call
         end
 
-        attr_accessor :name, :key, :required, :default_block
+        attr_accessor :name, :key, :required, :default_block, :type
     end
 end

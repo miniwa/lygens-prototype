@@ -37,6 +37,14 @@ module Lyg
             @field.default_block = block
         end
 
+        def type(value)
+            unless value < AbstractModel
+                raise TypeError, "Model type expected"
+            end
+
+            @field.type = value
+        end
+
         attr_reader :field
     end
 end

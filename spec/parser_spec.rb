@@ -68,6 +68,14 @@ RSpec.describe Lyg::ObjectParser do
                 end.to raise_error(TypeError)
             end
         end
+
+        context "when called with object_class that is not a model" do
+            it "should raise TypeError" do
+                expect do
+                    @parser.parse_as(String, {})
+                end.to raise_error(TypeError)
+            end
+        end
     end
 end
 

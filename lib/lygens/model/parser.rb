@@ -1,4 +1,5 @@
 require "json"
+require "lygens/model/model"
 
 module Lyg
     class ParserError < StandardError
@@ -7,6 +8,10 @@ module Lyg
     # A parser capable of parsing ruby objects into model instances
     class ObjectParser
         def parse_as(class_type, raw)
+            unless class_type < AbstractModel
+                raise TypeError, "Model type expected"
+            end
+
             object = transform_raw(raw)
             unless object.is_a?(Hash) || object.is_a?(Array)
                 raise TypeError, "Invalid object type, hash or array expected"

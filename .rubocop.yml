@@ -31,6 +31,9 @@ Layout/IndentationWidth:
 Layout/MultilineOperationIndentation:
   Enabled: false
 
+Layout/SpaceInsideHashLiteralBraces:
+  Enabled: false
+
 Metrics/MethodLength:
   CountComments: false
   Max: 30
