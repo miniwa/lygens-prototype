@@ -5,6 +5,7 @@ require "rest-client"
 require "json"
 
 module Lyg
+    
     # Represents a client for 4chan.org.
     class FourChanClient < HttpClient
         def initialize(host = "http://a.4cdn.org")

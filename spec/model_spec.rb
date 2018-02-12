@@ -90,8 +90,7 @@ RSpec.describe Lyg::Model do
     describe "#parse" do
         it "should parse a hash with all values correctly" do
             Person3 = Lyg::Model.define do
-                field :name do
-                end
+                field :name
             end
             hash = {
                 "name" => "Test"
@@ -101,11 +100,37 @@ RSpec.describe Lyg::Model do
             expect(person.name).to eq("Test")
         end
 
+        it "should parse a list of objects" do
+            Person8 = Lyg::Model.define do
+                field :name
+            end
+
+            list = [
+                {"name" => "Test"},
+                {"name" => "Test2"}
+            ]
+
+            persons = Person8.parse(list)
+            expect(persons[0].name).to eq("Test")
+            expect(persons[1].name).to eq("Test2")
+        end
+
+        context "when given an object that is not a Hash or an Array" do
+            it "should raise TypeError" do
+                Person9 = Lyg::Model.define do
+                    field :name
+                end
+
+                expect do
+                    Person9.parse("asdas")
+                end.to raise_error(TypeError)
+            end
+        end
+
         context "when non-required field is missing value" do
             it "should equal nil" do
                 Person4 = Lyg::Model.define do
-                    field :name do
-                    end
+                    field :name
                 end
                 hash = {}
 

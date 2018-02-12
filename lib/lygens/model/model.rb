@@ -36,20 +36,30 @@ module Lyg
             @fields = fields
         end
 
-        def self.parse(hash)
-            model = new
-            model.parse(hash)
-            return model
+        # Parses an object or a list of objects depending on input
+        # Raises TypeError if object is not a +Hash+ or +Array+
+        def self.parse(object)
+            if object.is_a?(Hash)
+                model = new
+                model.parse(object)
+                return model
+            elsif object.is_a?(Array)
+                result = []
+                object.each do |hash|
+                    model = new
+                    model.parse(hash)
+                    result.push(model)
+                end
+
+                return result
+            else
+                raise TypeError, "Invalid type, hash or array expected"
+            end
         end
 
         def initialize
             self.class.fields.each do |field|
-                value = begin
-                            field.default.dup
-                        rescue TypeError
-                            field.default
-                        end
-
+                value = field.default
                 send("#{field.name}=", value)
             end
         end

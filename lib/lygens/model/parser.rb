@@ -8,23 +8,8 @@ module Lyg
     class ObjectParser
         def parse_as(class_type, raw)
             object = transform_raw(raw)
-            if object.is_a?(Hash)
-                return parse_single(object, class_type)
-            elsif object.is_a?(Array)
-                result = []
-                object.each do |sub_object|
-                    result.push(parse_single(sub_object, class_type))
-                end
-
-                return result
-            else
+            unless object.is_a?(Hash) || object.is_a?(Array)
                 raise TypeError, "Invalid object type, hash or array expected"
-            end
-        end
-
-        def parse_single(object, class_type)
-            unless object.is_a?(Hash)
-                raise TypeError, "Invalid object type, hash expected"
             end
 
             return class_type.parse(object)
