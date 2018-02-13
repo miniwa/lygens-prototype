@@ -1,5 +1,5 @@
+require "lygens/four_chan/client"
 require "lygens/four_chan/dto"
-require "lygens/four_chan/four_chan"
 require "lygens/http/transport"
 require "lygens/model/model"
 

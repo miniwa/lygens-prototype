@@ -1,6 +1,6 @@
 # Main library file
 require "bundler/setup"
-require "lygens/four_chan/four_chan"
+require "lygens/four_chan/client"
 require "lygens/four_chan/dto"
 
 require "lygens/http/client"
