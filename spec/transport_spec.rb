@@ -116,6 +116,33 @@ RSpec.describe Lyg::RestClientHttpTransport do
             end
         end
 
+        context "when given request with multipart content" do
+            it "should set all its part and flag the content as multipart" do
+                content = Lyg::HttpMultiPartContent.new
+                content.parts = {
+                    "alive" => "yes",
+                    "reply_to" => 0
+                }
+                @request.content = content
+
+                expected = {
+                    method: :get,
+                    url: "test.se",
+                    headers: {
+                        params: {}
+                    },
+                    cookies: {},
+                    payload: {
+                        "alive" => "yes",
+                        "reply_to" => 0,
+                        multipart: true
+                    }
+                }
+
+                expect(@transport.adapt_request(@request)).to eq(expected)
+            end
+        end
+
         context "when given request with parameters" do
             it "should return a hash with params in the header" do
                 @request.parameters["test"] = 10

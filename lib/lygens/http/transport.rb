@@ -32,10 +32,15 @@ module Lyg
             }
 
             unless request.content.nil?
-                params[:payload] = request.content.as_text
-                request.content.get_headers.each do |key, value|
-                    unless params[:headers].key?(key)
-                        params[:headers][key] = value
+                if request.content.is_a?(HttpMultiPartContent)
+                    params[:payload] = request.content.parts
+                        .merge(multipart: true)
+                else
+                    params[:payload] = request.content.as_text
+                    request.content.get_headers.each do |key, value|
+                        unless params[:headers].key?(key)
+                            params[:headers][key] = value
+                        end
                     end
                 end
             end
