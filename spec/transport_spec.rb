@@ -1,5 +1,6 @@
 require "lygens/http/transport"
 require "lygens/http/request"
+require "lygens/http/content"
 require "rest-client"
 
 RSpec.describe Lyg::RestClientHttpTransport do
@@ -7,6 +8,7 @@ RSpec.describe Lyg::RestClientHttpTransport do
         @request = Lyg::HttpRequest.new(:get, "test.se")
         @response = instance_double("RestClient::Response")
         @request_class = class_double("RestClient::Request")
+        @content = instance_double("Lyg::HttpJsonContent")
         @transport = Lyg::RestClientHttpTransport.new(@request_class)
     end
 
@@ -87,20 +89,27 @@ RSpec.describe Lyg::RestClientHttpTransport do
         end
 
         context "when given request with headers and cookies" do
-            it "should return a hash with headers and cookies" do
-                @request.headers["Content-Type"] = "test"
+            it "should return a hash with headers, cookies and content" do
+                allow(@content).to receive(:as_text).and_return("[1,2]")
+                allow(@content).to receive(:get_headers).and_return(
+                    "Content-Type" => "application/json")
+
+                @request.headers["Host"] = "test"
                 @request.cookies["test"] = "yes"
+                @request.content = @content
 
                 expected = {
                     method: :get,
                     url: "test.se",
                     headers: {
-                        "Content-Type" => "test",
+                        "Content-Type" => "application/json",
+                        "Host" => "test",
                         params: {}
                     },
                     cookies: {
                         "test" => "yes"
-                    }
+                    },
+                    payload: "[1,2]"
                 }
 
                 expect(@transport.adapt_request(@request)).to eq(expected)

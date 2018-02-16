@@ -18,7 +18,7 @@ RSpec.describe Lyg::HttpResponse do
             end
         end
     end
-    
+
     describe "#parse_as" do
         context "when called with content and parser" do
             it "it should parse the object" do
@@ -28,7 +28,7 @@ RSpec.describe Lyg::HttpResponse do
                 @response.content = str
                 allow(@response.parser).to receive(:parse_as)
                     .and_return(obj)
-                
+
                 expect(@response.parse_as(String)).to eq(obj)
                 expect(@response.parser).to have_received(:parse_as)
                     .with(String, str)

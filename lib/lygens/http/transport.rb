@@ -31,6 +31,15 @@ module Lyg
                 cookies: request.cookies
             }
 
+            unless request.content.nil?
+                params[:payload] = request.content.as_text
+                request.content.get_headers.each do |key, value|
+                    unless params[:headers].key?(key)
+                        params[:headers][key] = value
+                    end
+                end
+            end
+
             params[:headers][:params] = request.parameters
 
             return params

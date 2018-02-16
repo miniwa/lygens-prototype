@@ -38,17 +38,6 @@ module Lyg
             return @code
         end
 
-        # Returns the content of the the response, or nil if no content was
-        # included
-        def content
-            return @content
-        end
-
-        # Assigns the content of the response
-        def content=(content)
-            @content = content
-        end
-
         attr_accessor :parser
     end
 end
