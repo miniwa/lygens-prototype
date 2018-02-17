@@ -1,6 +1,4 @@
 # Main library file
-require "bundler/setup"
-
 require "lygens/anti_captcha/client"
 require "lygens/anti_captcha/error"
 

@@ -6,6 +6,7 @@ require "lygens/model/parser"
 require "lygens/http/content"
 
 module Lyg
+    # A client to the anti captcha api
     class AntiCaptchaClient < HttpClient
         def initialize(transport, key, host = "https://api.anti-captcha.com")
             @host = host
@@ -13,6 +14,7 @@ module Lyg
             super(transport)
         end
 
+        # Creates a new recaptcha task for the site with given url and key
         def create_recaptcha_task(url, site_key)
             parameters = {
                 "clientKey" => @key,
@@ -25,23 +27,15 @@ module Lyg
 
             request = HttpRequest.new(:post, "#{@host}/createTask")
             request.content = HttpJsonContent.new(parameters)
-            response = @transport.execute(request)
-            response.parser = JsonParser.new
-
-            if response.code != 200
-                raise AntiCaptchaError,
-                    "The http request could not be completed"
-            end
+            response = execute(request)
 
             dto = response.parse_as(CreateTaskDto)
-            if dto.error_id > 1
-                raise AntiCaptchaError, "API call failed with code:"\
-                " #{dto.error_code} (#{dto.error_description})"
-            end
+            check_error_status(dto)
 
             return dto.task_id
         end
 
+        # Polls the status of a recaptcha task with given id
         def get_recaptcha_result(task_id)
             parameters = {
                 "clientKey" => @key,
@@ -50,19 +44,9 @@ module Lyg
 
             request = HttpRequest.new(:post, "#{@host}/getTaskResult")
             request.content = HttpJsonContent.new(parameters)
-            response = @transport.execute(request)
-            response.parser = JsonParser.new
-
-            if response.code != 200
-                raise AntiCaptchaError,
-                    "The http request could not be completed"
-            end
-
+            
             dto = response.parse_as(GetTaskResultDto)
-            if dto.error_id > 1
-                raise AntiCaptchaError, "API call failed with code:"\
-                " #{dto.error_code} (#{dto.error_description})"
-            end
+            check_error_status(dto)
 
             result = AntiCaptchaRecaptchaResult.new
             if dto.status == "ready"
@@ -75,9 +59,32 @@ module Lyg
             return result
         end
 
+        def execute(request)
+            begin
+                response = super(request)
+            rescue HttpConnectionError => exc
+                raise AntiCaptchaError, "HTTP request failed. (#{exc})"
+            end
+
+            if response.code != 200
+                raise AntiCaptchaError, "HTTP code #{response.code} received"
+            end
+            response.parser = JsonParser.new
+
+            return response
+        end
+
+        def check_error_status(dto)
+            if dto.error_id > 1
+                raise AntiCaptchaError, "API call failed with code:"\
+                " #{dto.error_code} (#{dto.error_description})"
+            end
+        end
+
         attr_accessor :host, :key
     end
 
+    # A result object returned when calling #get_recaptcha_result
     class AntiCaptchaRecaptchaResult
         attr_accessor :is_ready, :answer
     end

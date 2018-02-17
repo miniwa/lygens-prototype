@@ -8,7 +8,7 @@ fourchan_site = "https://boards.4chan.org/v"
 
 # Clients
 transport = Lyg::RestClientHttpTransport.new
-client = Lyg::FourChanClient.new(transport)
+client = Lyg::FourChanClient.new(transport, "host")
 captcha_client = Lyg::AntiCaptchaClient.new(transport,
     captcha_api_key)
 

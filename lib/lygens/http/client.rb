@@ -38,7 +38,13 @@ module Lyg
                     request.cookies[key] = value
                 end
             end
-            response = @transport.execute(request)
+
+            begin
+                response = @transport.execute(request)
+            rescue SocketError => exc
+                raise HttpConnectionError, "Request could not be executed"\
+                " (#{exc})"
+            end
 
             if @autosave_cookies
                 response.cookies.each do |key, value|

@@ -15,6 +15,7 @@ module Lyg
             super(transport)
         end
 
+        # Posts a given comment to a given thread using given captcha response
         def post(board, number, comment, captcha_response)
             post_url = "https://sys.4chan.org/#{board}/post"
             request = HttpRequest.new(:post, post_url)
@@ -23,18 +24,17 @@ module Lyg
             content.parts["resto"] = number
             content.parts["com"] = comment
             content.parts["mode"] = "regist"
-            # 4chan pass
-            #content.parts["pwd"] = ""
             content.parts["g-recaptcha-response"] = captcha_response
 
             request.content = content
-            return @transport.execute(request)
+            return execute(request)
         end
 
+        # Returns the thread on given board with given number
         def get_thread(board, number)
             url = @host + "/#{board}/thread/#{number}.json"
             request = HttpRequest.new(:get, url)
-            response = @transport.execute(request)
+            response = execute(request)
             response.parser = JsonParser.new
 
             dto = response.parse_as(FourChanGetThreadDto)
@@ -47,10 +47,11 @@ module Lyg
             return thread
         end
 
+        # Returns a list of thread numbers for a given board
         def get_threads(board)
             url = @host + "/#{board}/threads.json"
             request = HttpRequest.new(:get, url)
-            response = @transport.execute(request)
+            response = execute(request)
             response.parser = JsonParser.new
 
             pages = response.parse_as(FourChanGetThreadsDto)
@@ -64,6 +65,7 @@ module Lyg
             return threads
         end
 
+        # Parses thread information from an OP
         def parse_thread(post)
             thread = FourChanThread.new
             thread.sticky = post.thread_sticky == 1
@@ -83,6 +85,7 @@ module Lyg
             return thread
         end
 
+        # Parses a thread number
         def parse_thread_info(thread_dto)
             thread_info = FourChanThreadInfo.new
             thread_info.number = thread_dto.number
@@ -91,6 +94,7 @@ module Lyg
             return thread_info
         end
 
+        # Parses a post from given dto
         def parse_post(post_dto)
             post = FourChanPost.new
             post.number = post_dto.number
