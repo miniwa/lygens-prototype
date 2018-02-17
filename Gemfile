@@ -7,4 +7,5 @@ source "https://rubygems.org" do
     gem "rspec"
     gem "rspec-mocks"
     gem "simplecov"
+    gem "logging"
 end

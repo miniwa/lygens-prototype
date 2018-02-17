@@ -5,7 +5,6 @@ require "lygens/http/content"
 require "lygens/http/response"
 require "lygens/http/transport"
 require "lygens/model/model"
-require "htmlentities"
 require "nokogiri"
 require "time"
 

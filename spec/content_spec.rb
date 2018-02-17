@@ -4,7 +4,7 @@ RSpec.describe Lyg::HttpJsonContent do
     before(:each) do
         @content = Lyg::HttpJsonContent.new
     end
-    
+
     describe "#as_test" do
         it "should returns its buffer as json" do
             @content.buffer = [1, 2, 3]
