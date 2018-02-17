@@ -1,8 +1,9 @@
-require "lygens/http/client"
-require "lygens/http/transport"
-require "lygens/http/response"
-require "lygens/model/model"
 require "lygens/four_chan/dto"
+require "lygens/http/client"
+require "lygens/http/content"
+require "lygens/http/response"
+require "lygens/http/transport"
+require "lygens/model/model"
 require "time"
 
 module Lyg
@@ -12,6 +13,22 @@ module Lyg
                 host = "http://a.4cdn.org")
             @host = host
             super(transport)
+        end
+
+        def post(board, number, comment, captcha_response)
+            post_url = "https://sys.4chan.org/#{board}/post"
+            request = HttpRequest.new(:post, post_url)
+
+            content = HttpMultiPartContent.new
+            content.parts["resto"] = number
+            content.parts["com"] = comment
+            content.parts["mode"] = "regist"
+            # 4chan pass
+            #content.parts["pwd"] = ""
+            content.parts["g-recaptcha-response"] = captcha_response
+
+            request.content = content
+            return @transport.execute(request)
         end
 
         def get_thread(board, number)
