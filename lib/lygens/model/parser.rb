@@ -31,7 +31,7 @@ module Lyg
         def transform_raw(raw)
             begin
                 return JSON.parse(raw)
-            rescue JSON::ParserError
+            rescue JSON::ParserError => exc
                 raise ParserError, "An error occured in the internal parser"
             end
         end

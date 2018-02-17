@@ -50,7 +50,7 @@ RSpec.describe Lyg::FourChanClient do
                     "no": 51971508,
                     "now": "12/20/15(Sun)20:03:54",
                     "name": "Anonymous",
-                    "com": "Second",
+                    "com": "<a href=\\"#p407112495\\" class=\\"quotelink\\">&gt;&gt;407112495<\\/a><br><span class=\\"quote\\">&gt;what is poaching on a lords land<\\/span>",
                     "id": "hello",
                     "trip": "!asdasd",
                     "time": 1450659834,
@@ -74,7 +74,7 @@ RSpec.describe Lyg::FourChanClient do
             expect(thread.at_image_limit).to eq(false)
             expect(thread.tag).to eq(nil)
             expect(thread.semantic_url).to eq("the-g-wiki")
-            
+
             expect(thread.op.number).to eq(51971506)
             expect(thread.op.reply_to).to eq(0)
             expect(thread.op.time).to eq(Time.at(1450659832))
@@ -84,7 +84,7 @@ RSpec.describe Lyg::FourChanClient do
             expect(thread.op.comment).to eq("Test")
             expect(thread.op.pass_since).to eq(nil)
             expect(thread.replies.length).to eq(2)
-            
+
             first = thread.replies[0]
             expect(first.number).to eq(51971507)
             expect(first.reply_to).to eq(51971506)
@@ -102,7 +102,8 @@ RSpec.describe Lyg::FourChanClient do
             expect(second.name).to eq("Anonymous")
             expect(second.tripcode).to eq("!asdasd")
             expect(second.id).to eq("hello")
-            expect(second.comment).to eq("Second")
+            expect(second.comment).to eq(">>407112495\n>what is poaching "\
+                "on a lords land")
             expect(second.pass_since).to eq(2015)
         end
     end
@@ -130,7 +131,7 @@ RSpec.describe Lyg::FourChanClient do
 
             @response.content = json
             allow(@transport).to receive(:execute).and_return(@response)
-            
+
             threads = @client.get_threads("g")
             expect(threads.length).to eq(4)
             expect(threads[0].number).to eq(51971506)

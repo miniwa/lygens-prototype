@@ -5,6 +5,8 @@ require "lygens/http/content"
 require "lygens/http/response"
 require "lygens/http/transport"
 require "lygens/model/model"
+require "htmlentities"
+require "nokogiri"
 require "time"
 
 module Lyg
@@ -130,9 +132,18 @@ module Lyg
             post.name = post_dto.name
             post.tripcode = post_dto.tripcode
             post.id = post_dto.id
-            post.comment = post_dto.comment
-            post.pass_since = post_dto.pass_since
 
+            post.comment = ""
+            nodes = Nokogiri::HTML(post_dto.comment)
+            nodes.css("body > *").each do |node|
+                if node.name != "br"
+                    post.comment += node.text
+                else
+                    post.comment += "\n"
+                end
+            end
+            
+            post.pass_since = post_dto.pass_since
             return post
         end
     end
