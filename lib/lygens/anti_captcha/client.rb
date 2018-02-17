@@ -27,9 +27,8 @@ module Lyg
 
             request = HttpRequest.new(:post, "#{@host}/createTask")
             request.content = HttpJsonContent.new(parameters)
-            response = execute(request)
 
-            dto = response.parse_as(CreateTaskDto)
+            dto = execute(request).parse_as(CreateTaskDto)
             check_error_status(dto)
 
             return dto.task_id
@@ -44,8 +43,7 @@ module Lyg
 
             request = HttpRequest.new(:post, "#{@host}/getTaskResult")
             request.content = HttpJsonContent.new(parameters)
-            
-            dto = response.parse_as(GetTaskResultDto)
+            dto = execute(request).parse_as(GetTaskResultDto)
             check_error_status(dto)
 
             result = AntiCaptchaRecaptchaResult.new

@@ -1,4 +1,5 @@
 require "lygens/four_chan/dto"
+require "lygens/four_chan/error"
 require "lygens/http/client"
 require "lygens/http/content"
 require "lygens/http/response"
@@ -25,9 +26,13 @@ module Lyg
             content.parts["com"] = comment
             content.parts["mode"] = "regist"
             content.parts["g-recaptcha-response"] = captcha_response
-
             request.content = content
-            return execute(request)
+
+            response = execute(request)
+            success_reg = /Post successful!/
+            unless success_reg.match(response.content)
+                raise FourChanPostError, "Comment rejected by server"
+            end
         end
 
         # Returns the thread on given board with given number
@@ -35,16 +40,20 @@ module Lyg
             url = @host + "/#{board}/thread/#{number}.json"
             request = HttpRequest.new(:get, url)
             response = execute(request)
-            response.parser = JsonParser.new
 
-            dto = response.parse_as(FourChanGetThreadDto)
-            thread = parse_thread(dto.posts[0])
-            thread.op = parse_post(dto.posts[0])
-            1.upto(thread.reply_count) do |i|
-                thread.replies.push(parse_post(dto.posts[i]))
+            begin
+                dto = response.parse_as(FourChanGetThreadDto)
+                thread = parse_thread(dto.posts[0])
+                thread.op = parse_post(dto.posts[0])
+                1.upto(thread.reply_count) do |i|
+                    thread.replies.push(parse_post(dto.posts[i]))
+                end
+
+                return thread
+            rescue ParserError => exc
+                raise FourChanError, "Could not parse thread from content "\
+                "(#{exc})"
             end
-
-            return thread
         end
 
         # Returns a list of thread numbers for a given board
@@ -52,17 +61,35 @@ module Lyg
             url = @host + "/#{board}/threads.json"
             request = HttpRequest.new(:get, url)
             response = execute(request)
-            response.parser = JsonParser.new
 
-            pages = response.parse_as(FourChanGetThreadsDto)
-            threads = []
-            pages.each do |page|
-                page.threads.each do |thread|
-                    threads.push(parse_thread_info(thread))
+            begin
+                pages = response.parse_as(FourChanGetThreadsDto)
+                threads = []
+                pages.each do |page|
+                    page.threads.each do |thread|
+                        threads.push(parse_thread_info(thread))
+                    end
                 end
-            end
 
-            return threads
+                return threads
+            rescue ParserError => exc
+                raise FourChanError, "Could not parse threads from content "\
+                "(#{exc})"
+            end
+        end
+
+        def execute(request)
+            begin
+                response = super(request)
+                if response.code != 200
+                    raise FourChanError, "Server responded with status code: "\
+                        "#{response.code}"
+                end
+                response.parser = JsonParser.new
+                return response
+            rescue HttpConnectionError => exc
+                raise FourChanError, "Failed to execute request"
+            end
         end
 
         # Parses thread information from an OP
