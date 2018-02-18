@@ -4,4 +4,10 @@ module Lyg
 
     class FourChanPostError < FourChanError
     end
+
+    class FourChanBannedError < FourChanPostError
+    end
+
+    class FourChanArchivedError < FourChanPostError
+    end
 end

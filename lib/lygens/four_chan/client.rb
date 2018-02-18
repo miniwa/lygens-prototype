@@ -6,7 +6,9 @@ require "lygens/http/response"
 require "lygens/http/transport"
 require "lygens/model/model"
 require "nokogiri"
+require "concurrent"
 require "time"
+require "logging"
 
 module Lyg
     # Represents a client for 4chan.org.
@@ -14,6 +16,7 @@ module Lyg
         def initialize(transport = RestClientHttpTransport.new,
                 host = "http://a.4cdn.org")
             @host = host
+            @logger = Logging.logger[self]
             super(transport)
         end
 
@@ -31,8 +34,17 @@ module Lyg
 
             response = execute(request)
             success_reg = /Post successful!/
+            banned_reg = /Error: You are/
+            archived_reg = /Error: You cannot reply to this thread anymore./
             unless success_reg.match(response.content)
-                raise FourChanPostError, "Comment rejected by server"
+                if banned_reg.match(response.content)
+                    raise FourChanBannedError, "Your IP is banned"
+                elsif archived_reg.match(response.content)
+                    raise FourChanArchivedError, "Thread is archived"
+                else
+                    @logger.debug("Unknown content: #{response.content}")
+                    raise FourChanPostError, "Comment rejected by server"
+                end
             end
         end
 
@@ -57,8 +69,16 @@ module Lyg
             end
         end
 
+        # Returns a promise that will eventually yield the thread on given board
+        # and number
+        def get_thread_async(board, number, executor = :task)
+            return Concurrent::Promise.new(executor: executor) do
+                get_thread(board, number)
+            end
+        end
+
         # Returns a list of thread numbers for a given board
-        def get_threads(board)
+        def get_thread_numbers(board)
             url = @host + "/#{board}/threads.json"
             request = HttpRequest.new(:get, url)
             response = execute(request)
@@ -68,7 +88,7 @@ module Lyg
                 threads = []
                 pages.each do |page|
                     page.threads.each do |thread|
-                        threads.push(parse_thread_info(thread))
+                        threads.push(parse_thread_number(thread))
                     end
                 end
 
@@ -76,6 +96,14 @@ module Lyg
             rescue ParserError => exc
                 raise FourChanError, "Could not parse threads from content "\
                 "(#{exc})"
+            end
+        end
+
+        # Returns a promise that will eventually yield a list of thread numbers
+        # for a given board
+        def get_thread_numbers_async(board, executor = :task)
+            return Concurrent::Promise.new(executor: executor) do
+                get_thread_numbers(board)
             end
         end
 
@@ -114,12 +142,12 @@ module Lyg
         end
 
         # Parses a thread number
-        def parse_thread_info(thread_dto)
-            thread_info = FourChanThreadInfo.new
-            thread_info.number = thread_dto.number
-            thread_info.last_modified = Time.at(thread_dto.last_modified)
+        def parse_thread_number(thread_number_dto)
+            thread_number = FourChanThreadNumber.new
+            thread_number.number = thread_number_dto.number
+            thread_number.last_modified = Time.at(thread_number_dto.last_modified)
 
-            return thread_info
+            return thread_number
         end
 
         # Parses a post from given dto
@@ -141,8 +169,8 @@ module Lyg
                     post.comment += "\n"
                 end
             end
-            
             post.pass_since = post_dto.pass_since
+
             return post
         end
     end
@@ -165,8 +193,8 @@ module Lyg
             :semantic_url
     end
 
-    # Represents identification info about a 4chan thread
-    class FourChanThreadInfo
+    # Represents a number and last modified time of a 4chan thread
+    class FourChanThreadNumber
         attr_accessor :number, :last_modified
     end
 end

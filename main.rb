@@ -2,6 +2,7 @@ require "bundler/setup"
 require "lygens"
 require "logging"
 require "json"
+require "concurrent"
 
 # Config
 Logging.logger.root.level = :debug
@@ -16,19 +17,32 @@ captcha_client = Lyg::AntiCaptchaClient.new(transport,
     captcha_api_key)
 
 # Create poster
-poster = Lyg::LygensPoster.new(client, captcha_client)
+pool = Concurrent::ThreadPoolExecutor.new(min_threads: 5,
+    max_threads: 20, max_queue: 0)
+poster = Lyg::LygensPoster.new(client, captcha_client, pool)
+poster.source_boards.push("pol")
 
 # Payload
 board = "v"
-thread_number = "407127636"
+thread_number = "407240385"
 
 times = 50
 1.upto(times) do |i|
     logger.debug("Post#{i}")
     begin
-        poster.shitpost(board, thread_number)
+        promise = poster.shitpost(board, thread_number)
+
+        logger.debug("Awaiting post promise..")
+        promise.execute().value
+        if promise.fulfilled?
+            logger.debug("Promise completed. Sleeping..")
+        elsif promise.rejected?
+            logger.debug("Promise failed: ")
+            raise promise.reason
+        end
         sleep(40)
-    rescue FourChanPostError
-        @logger.debug("Post rejected, retrying post procedure")
+    rescue Lyg::FourChanPostError => exc
+        logger.debug("Post rejected. (#{exc})")
+        exit(1)
     end
 end

@@ -108,7 +108,7 @@ RSpec.describe Lyg::FourChanClient do
         end
     end
 
-    describe "#get_threads" do
+    describe "#get_thread_numbers" do
         it "should be able to parse a well-formed response" do
             json = <<-JSON
             [
@@ -132,7 +132,7 @@ RSpec.describe Lyg::FourChanClient do
             @response.content = json
             allow(@transport).to receive(:execute).and_return(@response)
 
-            threads = @client.get_threads("g")
+            threads = @client.get_thread_numbers("g")
             expect(threads.length).to eq(4)
             expect(threads[0].number).to eq(51971506)
             expect(threads[0].last_modified).to eq(Time.at(1450659844))
