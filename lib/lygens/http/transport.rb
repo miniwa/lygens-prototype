@@ -47,6 +47,10 @@ module Lyg
 
             params[:headers][:params] = request.parameters
 
+            unless request.proxy.nil?
+                params[:proxy] = request.proxy
+            end
+
             return params
         end
 

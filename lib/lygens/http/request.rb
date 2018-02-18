@@ -33,5 +33,15 @@ module Lyg
         def parameters
             return @parameters
         end
+
+        # Returns the adress of the proxy, or nil if none.
+        def proxy
+            return @proxy
+        end
+
+        # Assigns the adress of the proxy
+        def proxy=(proxy)
+            @proxy = proxy
+        end
     end
 end

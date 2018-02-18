@@ -18,10 +18,11 @@ RSpec.describe Lyg::HttpClient do
             end
         end
 
-        context "when called with preset header or cookie" do
-            it "should include those headers or cookies in the request" do
+        context "when called with preset header, cookie or proxy" do
+            it "should include those objects in the request" do
                 @client.headers["Host"] = "google.se"
                 @client.cookies["cfid"] = "test"
+                @client.proxy = "http://test.se:80"
                 allow(@transport).to receive(:execute).and_return(@response)
 
                 @client.execute(@request)
@@ -30,6 +31,7 @@ RSpec.describe Lyg::HttpClient do
 
                 expect(@request.headers["Host"]).to eq("google.se")
                 expect(@request.cookies["cfid"]).to eq("test")
+                expect(@request.proxy).to eq("http://test.se:80")
             end
         end
 
@@ -38,10 +40,12 @@ RSpec.describe Lyg::HttpClient do
             it "should prioritize the argument" do
                 @client.headers["Host"] = "google.se"
                 @client.cookies["cfid"] = "test"
+                @client.proxy = "http://test.se:80"
                 allow(@transport).to receive(:execute).and_return(@response)
 
                 @request.headers["Host"] = "testest"
                 @request.cookies["cfid"] = "id"
+                @request.proxy = "http://test.se:8080"
 
                 @client.execute(@request)
                 expect(@transport).to have_received(:execute)
@@ -49,6 +53,7 @@ RSpec.describe Lyg::HttpClient do
 
                 expect(@request.headers["Host"]).to eq("testest")
                 expect(@request.cookies["cfid"]).to eq("id")
+                expect(@request.proxy).to eq("http://test.se:8080")
             end
         end
 

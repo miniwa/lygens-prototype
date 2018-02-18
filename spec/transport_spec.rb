@@ -88,7 +88,7 @@ RSpec.describe Lyg::RestClientHttpTransport do
             end
         end
 
-        context "when given request with headers and cookies" do
+        context "when given request with headers, cookies and proxy" do
             it "should return a hash with headers, cookies and content" do
                 allow(@content).to receive(:as_text).and_return("[1,2]")
                 allow(@content).to receive(:get_headers).and_return(
@@ -96,6 +96,7 @@ RSpec.describe Lyg::RestClientHttpTransport do
 
                 @request.headers["Host"] = "test"
                 @request.cookies["test"] = "yes"
+                @request.proxy = "http://test.se:8080"
                 @request.content = @content
 
                 expected = {
@@ -109,7 +110,8 @@ RSpec.describe Lyg::RestClientHttpTransport do
                     cookies: {
                         "test" => "yes"
                     },
-                    payload: "[1,2]"
+                    payload: "[1,2]",
+                    proxy: "http://test.se:8080"
                 }
 
                 expect(@transport.adapt_request(@request)).to eq(expected)
