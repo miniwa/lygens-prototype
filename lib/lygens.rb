@@ -19,3 +19,6 @@ require "lygens/model/descriptor"
 require "lygens/model/error"
 require "lygens/model/model"
 require "lygens/model/parser"
+
+require "lygens/proxy/client"
+require "lygens/proxy/error"

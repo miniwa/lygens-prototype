@@ -57,4 +57,13 @@ module Lyg
 
         attr_accessor :autosave_cookies
     end
+
+    # Represents a HTTP proxy
+    class HttpProxy
+        def ip_port
+            return "#{@ip}:#{@port}"
+        end
+
+        attr_accessor :ip, :port, :country, :supports_https, :anonymous
+    end
 end
