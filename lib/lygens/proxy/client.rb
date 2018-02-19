@@ -33,6 +33,14 @@ module Lyg
             return parse_proxy(dto)
         end
 
+        # Returns a promise that will eventually yield a new proxy from
+        # gimme proxy.
+        def get_proxy_async(executor = :task)
+            return Concurrent::Promise.new(executor: executor) do
+                get_proxy
+            end
+        end
+
         def parse_proxy(dto)
             proxy = HttpProxy.new
             proxy.ip = dto.ip

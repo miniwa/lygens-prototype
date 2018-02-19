@@ -97,6 +97,7 @@ RSpec.describe Lyg::RestClientHttpTransport do
                 @request.headers["Host"] = "test"
                 @request.cookies["test"] = "yes"
                 @request.proxy = "http://test.se:8080"
+                @request.timeout = 40
                 @request.content = @content
 
                 expected = {
@@ -111,7 +112,8 @@ RSpec.describe Lyg::RestClientHttpTransport do
                         "test" => "yes"
                     },
                     payload: "[1,2]",
-                    proxy: "http://test.se:8080"
+                    proxy: "http://test.se:8080",
+                    timeout: 40
                 }
 
                 expect(@transport.adapt_request(@request)).to eq(expected)

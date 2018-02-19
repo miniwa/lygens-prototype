@@ -43,5 +43,15 @@ module Lyg
         def proxy=(proxy)
             @proxy = proxy
         end
+
+        # Returns the timeout value in seconds
+        def timeout
+            return @timeout
+        end
+
+        # Assigns the timeout value in seconds
+        def timeout=(timeout)
+            @timeout = timeout
+        end
     end
 end

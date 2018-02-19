@@ -45,6 +45,12 @@ module Lyg
                 end
             end
 
+            unless @timeout.nil?
+                if request.timeout.nil?
+                    request.timeout = @timeout
+                end
+            end
+
             begin
                 response = @transport.execute(request)
             rescue SocketError => exc
@@ -61,14 +67,15 @@ module Lyg
             return response
         end
 
-        attr_accessor :autosave_cookies, :proxy
+        attr_accessor :autosave_cookies, :proxy, :timeout
     end
 
     # Represents a HTTP proxy
     class HttpProxy
         # Returns the address of the proxy as a qualified URI
         def uri
-            return "#{@protocol}://#{@ip}:#{@port}"
+            protocol = supports_https ? "https" : "http"
+            return "#{protocol}://#{@ip}:#{@port}"
         end
 
         attr_accessor :ip, :port, :country, :supports_https, :anonymous

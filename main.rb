@@ -13,18 +13,20 @@ captcha_api_key = "11346f1d5172530024ab2dc6ea6dbe05"
 # Clients
 transport = Lyg::RestClientHttpTransport.new
 client = Lyg::FourChanClient.new(transport)
+proxy_client = Lyg::GimmeProxyClient.new(transport)
 captcha_client = Lyg::AntiCaptchaClient.new(transport,
     captcha_api_key)
 
 # Create poster
 pool = Concurrent::ThreadPoolExecutor.new(min_threads: 5,
-    max_threads: 20, max_queue: 0)
-poster = Lyg::LygensPoster.new(client, captcha_client, pool)
+    max_threads: 40, max_queue: 0)
+poster = Lyg::LygensPoster.new(transport, client,
+    captcha_client, proxy_client, pool)
 poster.source_boards.push("pol")
 
 # Payload
 board = "v"
-thread_number = "407240385"
+thread_number = "407260153"
 
 times = 50
 1.upto(times) do |i|
@@ -42,7 +44,7 @@ times = 50
         end
         sleep(40)
     rescue Lyg::FourChanPostError => exc
-        logger.debug("Post rejected. (#{exc})")
+        logger.debug("Post rejected. (#{exc.message}) #{exc.backtrace.inspect}")
         exit(1)
     end
 end

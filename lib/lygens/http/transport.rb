@@ -51,6 +51,10 @@ module Lyg
                 params[:proxy] = request.proxy
             end
 
+            unless request.timeout.nil?
+                params[:timeout] = request.timeout
+            end
+
             return params
         end
 
@@ -74,11 +78,23 @@ module Lyg
         def execute(request)
             begin
                 response = @request_class.execute(adapt_request(request))
-                return adapt_response(response)
+                if response.nil?
+                    raise HttpConnectionError, "Did not receive proper response"
+                else
+                    return adapt_response(response)
+                end
             rescue RestClient::ExceptionWithResponse => e
-                return adapt_response(e.response)
+                if e.response.nil?
+                    raise HttpConnectionError, "Did not receive proper response"
+                else
+                    return adapt_response(e.response)
+                end
             rescue RestClient::Exception
                 raise HttpConnectionError, "A transport error has occured"
+            rescue Net::HTTPServerException, Net::HTTPFatalError,
+                Errno::ECONNREFUSED
+                raise HttpConnectionError, "An enxpected transport error"\
+                " has occured"
             end
         end
     end

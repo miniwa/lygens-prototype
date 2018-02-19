@@ -35,14 +35,19 @@ module Lyg
             response = execute(request)
             success_reg = /Post successful!/
             banned_reg = /Error: You are/
+            disabled_reg = /Posting from your ISP, IP range, or country has been blocked/
             archived_reg = /Error: You cannot reply to this thread anymore./
+            mistyped_reg = /Error: You seem to have mistyped the CAPTCHA/
             unless success_reg.match(response.content)
-                if banned_reg.match(response.content)
+                if banned_reg.match(response.content) ||
+                    disabled_reg.match(response.content)
                     raise FourChanBannedError, "Your IP is banned"
                 elsif archived_reg.match(response.content)
                     raise FourChanArchivedError, "Thread is archived"
+                elsif mistyped_reg.match(response.content)
+                    raise FourChanCaptchaError, "The captcha was not valid"
                 else
-                    @logger.debug("Unknown content: #{response.content}")
+                    @logger.warn("Unknown content: #{response.content}")
                     raise FourChanPostError, "Comment rejected by server"
                 end
             end
@@ -111,13 +116,13 @@ module Lyg
             begin
                 response = super(request)
                 if response.code != 200
-                    raise FourChanError, "Server responded with status code: "\
-                        "#{response.code}"
+                    raise FourChanHttpError, "Server responded with"\
+                        " code: #{response.code}"
                 end
                 response.parser = JsonParser.new
                 return response
             rescue HttpConnectionError => exc
-                raise FourChanError, "Failed to execute request"
+                raise FourChanHttpError, "Failed to execute request"
             end
         end
 

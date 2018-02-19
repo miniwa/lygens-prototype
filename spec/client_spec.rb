@@ -23,6 +23,7 @@ RSpec.describe Lyg::HttpClient do
                 @client.headers["Host"] = "google.se"
                 @client.cookies["cfid"] = "test"
                 @client.proxy = "http://test.se:80"
+                @client.timeout = 40
                 allow(@transport).to receive(:execute).and_return(@response)
 
                 @client.execute(@request)
@@ -32,6 +33,7 @@ RSpec.describe Lyg::HttpClient do
                 expect(@request.headers["Host"]).to eq("google.se")
                 expect(@request.cookies["cfid"]).to eq("test")
                 expect(@request.proxy).to eq("http://test.se:80")
+                expect(@request.timeout).to eq(40)
             end
         end
 
@@ -41,11 +43,13 @@ RSpec.describe Lyg::HttpClient do
                 @client.headers["Host"] = "google.se"
                 @client.cookies["cfid"] = "test"
                 @client.proxy = "http://test.se:80"
+                @client.timeout = 40
                 allow(@transport).to receive(:execute).and_return(@response)
 
                 @request.headers["Host"] = "testest"
                 @request.cookies["cfid"] = "id"
                 @request.proxy = "http://test.se:8080"
+                @request.timeout = 30
 
                 @client.execute(@request)
                 expect(@transport).to have_received(:execute)
@@ -54,6 +58,7 @@ RSpec.describe Lyg::HttpClient do
                 expect(@request.headers["Host"]).to eq("testest")
                 expect(@request.cookies["cfid"]).to eq("id")
                 expect(@request.proxy).to eq("http://test.se:8080")
+                expect(@request.timeout).to eq(30)
             end
         end
 
