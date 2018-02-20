@@ -48,7 +48,7 @@ module Lyg
                     raise FourChanCaptchaError, "The captcha was not valid"
                 else
                     @logger.warn("Unknown content: #{response.content}")
-                    raise FourChanPostError, "Comment rejected by server"
+                    raise FourChanHttpError, "Unknown content received"
                 end
             end
         end
@@ -109,6 +109,27 @@ module Lyg
         def get_thread_numbers_async(board, executor = :task)
             return Concurrent::Promise.new(executor: executor) do
                 get_thread_numbers(board)
+            end
+        end
+
+        # Returns whether this client is banned or not
+        def get_ban_status(captcha_response)
+            content = HttpMultiPartContent.new
+            content.parts["g-recaptcha-answer"] = captcha_response
+
+            request = HttpRequest.new(:post, @host)
+            request.content = content
+            response = execute(request)
+
+            success_reg = /You are not banned/
+            banned_reg = /You are banned/
+            if success_reg.match(response.content)
+                return false
+            elsif banned_reg.match(response.content)
+                return true
+            else
+                @logger.warn("Unknown content: #{response.content}")
+                raise FourChanHttpError, "Unknown content received by server"
             end
         end
 
