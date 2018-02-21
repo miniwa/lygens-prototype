@@ -35,7 +35,7 @@ module Lyg
 
         # Returns a promise that will eventually yield a new proxy from
         # gimme proxy.
-        def get_proxy_async(executor = :task)
+        def get_proxy_async(executor)
             return Concurrent::Promise.new(executor: executor) do
                 get_proxy
             end

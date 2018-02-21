@@ -14,6 +14,9 @@ module Lyg
     class FourChanCaptchaError < FourChanPostError
     end
 
+    class FourChanTimeoutError < FourChanPostError
+    end
+
     class FourChanArchivedError < FourChanPostError
     end
 end

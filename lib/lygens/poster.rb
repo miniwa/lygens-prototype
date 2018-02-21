@@ -6,189 +6,165 @@ require "concurrent"
 module Lyg
     # An concurrent wrapper for executing actions on four chan objects
     class LygensPoster
-        def initialize(transport, client, captcha_client,
-                proxy_client, executor)
+        def initialize(transport, client, solver, proxy_client, executor)
             @transport = transport
             @client = client
-            @captcha_client = captcha_client
-            @site = "https://boards.4chan.org/v"
-            @site_key = "6Ldp2bsSAAAAAAJ5uyx_lx34lJeEpTLVkP5k04qc"
+            @solver = solver
+
             @proxy_client = proxy_client
             @executor = executor
 
-            @posts_made = {}
-            @source_boards = []
+            @source_boards = Concurrent::Array.new
+            @clients = Concurrent::Array.new
             @logger = Logging.logger[self]
         end
 
         def shitpost(board, thread_number)
             thread_promise = @client.get_thread_async(board, thread_number,
-                @executor)
-            captcha_promise = get_captcha_async.execute
+                @executor).execute
+            answer_promise = @solver.get_answer_async(@executor).execute
             reply_promise = get_random_reply_async.execute
-            proxy_promise = get_valid_proxy_async(5).execute
 
-            return Concurrent::Promise.zip(thread_promise,
-                captcha_promise, reply_promise, proxy_promise)
+            return Concurrent::Promise.zip(thread_promise, answer_promise,
+                reply_promise)
                 .then(executor: @executor) do |result|
                 thread = result[0]
                 answer = result[1]
                 reply = result[2]
-                proxy = result[3]
 
+                @logger.debug("Fetching target..")
                 target = get_target_post(thread)
                 @logger.debug("Post with id: #{target.number} is the target")
                 comment = FourChanComment.replace_quotes(reply.comment,
                     target.number)
                 @logger.debug("Final reply: \n\"\"\"\n#{comment}\n\"\"\"")
 
-                post_client = FourChanClient.new(@transport)
-                post_client.proxy = proxy.uri
-                @logger.debug("Creating four chan client with proxy:"\
-                    " #{proxy.uri}")
-
+                post_client = wait_for_client
+                @logger.debug("Using four chan client with proxy:"\
+                    " #{post_client.proxy}")
                 @logger.debug("Attempting to post..")
-                post_tries = 0
+
                 begin
                     post_client.post(board, thread.op.number, comment, answer)
-                rescue FourChanBannedError, FourChanCaptchaError => exc
+                rescue FourChanBannedError, FourChanCaptchaError,
+                    FourChanHttpError, FourChanTimeoutError => exc
                     if exc.is_a?(FourChanBannedError)
-                        @logger.debug("Commented rejected because of IP ban")
+                        @logger.debug("Comment rejected because of IP ban")
+                        @clients.delete(post_client)
+                        post_client = wait_for_client
+                        answer = @solver.get_answer
                     elsif exc.is_a?(FourChanCaptchaError)
                         @logger.debug("Captcha reported as false")
-                    end
-
-                    @logger.debug("Fetching new captcha")
-                    answer_promise = get_captcha_async.execute
-                    if exc.is_a?(FourChanBannedError)
-                        @logger.debug("Switching proxy..")
-                        post_client.proxy = get_valid_proxy(5).uri
-                        @logger.debug("New proxy: #{post_client.proxy}")
-                    end
-                    answer = answer_promise.value
-                    if answer_promise.rejected?
-                        raise answer_promise.reason
-                    end
-                rescue FourChanHttpError => exc
-                    @logger.debug("HTTP error when trying to post")
-                    @logger.debug("Switching proxy..")
-                    post_client.proxy = get_valid_proxy(5).uri
-
-                    @logger.debug("New proxy: #{post_client.proxy}")
-                    retry
-                rescue FourChanCaptchaError => exc
-                    @logger.debug("Captcha was not valid. Fetching new one..")
-                    answer = get_captcha_async.execute.val
-                rescue FourChanArchivedError => exc
-                    raise exc
-                rescue FourChanPostError => exc
-                    post_tries += 1
-                    if post_tries < 6
-                        @logger.debug("Comment rejected. Retrying in 5..")
+                        answer = @solver.get_answer
+                    elsif exc.is_a?(FourChanTimeoutError)
+                        @logger.debug("This ip is timed out")
                         sleep(5)
-                        retry
+                        answer = @solver.get_answer
                     else
-                        raise FourChanPostError, "Could not post message"
+                        @logger.debug("Http error when trying to post")
+                        @clients.delete(post_client)
+                        post_client = wait_for_client
                     end
+
+                    retry
                 end
                 @logger.debug("Sucessfully posted comment")
             end
         end
 
-        def get_captcha_async
-            return Concurrent::Promise.new(executor: @executor) do
-                @logger.debug("Creating recaptcha task..")
-                task_id = @captcha_client.create_recaptcha_task(@site, @site_key)
-                @logger.debug("Task #{task_id} created.")
-                sleep(5)
-
-                tries = 0
-                answer = nil
-                while tries < 25
-                    tries += 1
-                    @logger.debug("Fetching status of captcha task..")
-                    response = @captcha_client.get_recaptcha_result(task_id)
-                    if response.is_ready
-                        @logger.debug("Answer ready: #{response.answer}")
-                        answer = response.answer
-                        break
-                    end
-
-                    @logger.debug("Captcha task pending. Sleeping 5 seconds..")
-                    sleep(5)
+        def fetch_new_client
+            client = FourChanClient.new(@transport)
+            while true
+                begin
+                    @logger.debug("Fetching new proxy..")
+                    proxy = @proxy_client.get_proxy
+                    @logger.debug("New proxy at at: #{proxy.uri}")
+                    client.proxy = proxy.uri
+                    client.post("v", 1, "hi", "token")
+                rescue FourChanCaptchaError
+                    @logger.debug("Passed sanity check")
+                    answer_promise = @solver.get_answer_async(@executor).execute
+                rescue FourChanHttpError, FourChanPostError
+                    @logger.debug("Proxy test reports error, trying another..")
+                    retry
                 end
 
-                if !answer.nil?
-                    answer
-                else
-                    raise StandardError, "Captcha task timed out"
+                answer = answer_promise.value
+                if answer_promise.rejected?
+                    raise answer_promise.reason
+                end
+
+                begin
+                    @logger.debug("Checking proxy ban status..")
+                    unless client.get_ban_status(answer)
+                        @logger.debug("Proxy is whitelisted")
+                        return client
+                    end
+                    @logger.debug("Proxy is banned.")
+                    answer_promise = @solver.get_answer_async(@executor).execute
+                rescue FourChanCaptchaError
+                    @logger.debug("Invalid captcha reported when checking ban")
+                    answer = @solver.get_answer
+                    retry
+                rescue FourChanHttpError, FourChanPostError
                 end
             end
         end
 
-        def get_valid_proxy(timeout)
-            test_client = FourChanClient.new(@transport)
-            test_client.timeout = timeout
-            begin
-                @logger.debug("Retrieving new proxy from api")
-                proxy = @proxy_client.get_proxy
-                @logger.debug("Proxy fetched: #{proxy.uri}")
+        def fetch_new_client_async
+            return Concurrent::Promise.new(executor: @executor) do
+                fetch_new_client
+            end
+        end
 
-                @logger.debug("Checking proxy sanity..")
-                test_client.proxy = proxy.uri
-                test_client.post("v", 1, "hi", "token")
-            rescue FourChanCaptchaError
-                @logger.debug("Passed check")
-                return proxy
-            rescue FourChanHttpError
-                @logger.debug("Test reports HTTP error. Trying another..")
-                retry
-            rescue FourChanPostError
-                @logger.debug("Tests report 4chan-related"\
-                " error. Trying another..")
-                retry
-            rescue StandardError => exc
-                @logger.debug("Caught weird #{exc.class}. (#{exc.message}"\
-                    " #{exc.backtrace.inspect})")
+        def wait_for_client
+            while true
+                if @clients.any?
+                    return @clients.sample
+                else
+                    sleep 0.1
+                end
+            end
+        end
+
+        def wait_for_client_async
+            return Concurrent::Promise.new(executor: @executor) do
+                wait_for_client
+            end
+        end
+
+        def get_random_reply
+            begin
+                source = @source_boards.sample
+                thread_numbers = @client.get_thread_numbers(source)
+
+                @logger.debug("Shuffling thread numbers")
+                thread_numbers.shuffle.each do |thread_number|
+                    thread = @client.get_thread(source, thread_number.number)
+
+                    @logger.debug("Shuffling post numbers")
+                    thread.replies.shuffle.each do |reply|
+                        if FourChanComment.has_quote(reply.comment) &&
+                            reply.comment.split(" ").length > 10
+                            @logger.debug("Matching reply found")
+                            return reply
+                        end
+                    end
+                end
+            rescue Exception => exc
+                @logger.warn("Unhandled exception when getting reply"\
+                "(#{exc.class} #{exc.message}) #{exc.backtrace}")
                 raise exc
             end
-        end
 
-        def get_valid_proxy_async(timeout)
-            return Concurrent::Promise.new(executor: @executor) do
-                get_valid_proxy(timeout)
-            end
+            raise FourChanError, "No post matched the given criterias"
         end
 
         # Returns a promise that will eventually yield a weighted random reply
         # from one of the configured source boards
         def get_random_reply_async
             return Concurrent::Promise.new(executor: @executor) do
-                source = @source_boards.sample
-                thread_numbers = @client.get_thread_numbers(source)
-                result = nil
-
-                thread_numbers.shuffle.each do |thread_number|
-                    thread = @client.get_thread(source, thread_number.number)
-                    thread.replies.shuffle.each do |reply|
-                        if FourChanComment.has_quote(reply.comment) &&
-                            reply.comment.split(" ").length > 10
-                            result = reply
-                            @logger.debug("Matching reply found")
-                            break
-                        end
-                    end
-
-                    unless result.nil?
-                        break
-                    end
-                end
-
-                if !result.nil?
-                    result
-                else
-                    raise FourChanError, "No post matched the given criterias"
-                end
+                get_random_reply
            end
         end
 
@@ -211,6 +187,6 @@ module Lyg
             end
         end
 
-        attr_accessor :posts_made, :source_boards
+        attr_accessor :posts_made, :source_boards, :clients
     end
 end

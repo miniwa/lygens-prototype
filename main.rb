@@ -16,35 +16,77 @@ client = Lyg::FourChanClient.new(transport)
 proxy_client = Lyg::GimmeProxyClient.new(transport)
 captcha_client = Lyg::AntiCaptchaClient.new(transport,
     captcha_api_key)
+solver = Lyg::LygensCaptchaSolver.new(captcha_client)
 
 # Create poster
 pool = Concurrent::ThreadPoolExecutor.new(min_threads: 5,
-    max_threads: 40, max_queue: 0)
+    max_threads: 50, max_queue: 0)
 poster = Lyg::LygensPoster.new(transport, client,
-    captcha_client, proxy_client, pool)
+    solver, proxy_client, pool)
 poster.source_boards.push("pol")
 
 # Payload
 board = "v"
-thread_number = "407260153"
+thread_number = "407468980"
 
-times = 50
-1.upto(times) do |i|
-    logger.debug("Post#{i}")
+# Locals
+desired_clients = 4
+client_promises = []
+post_promises = [poster.shitpost(board, thread_number).execute]
+#post_promises = []
+
+while true
     begin
-        promise = poster.shitpost(board, thread_number)
+        # Schedule new clients
+        if poster.clients.length < desired_clients
+            should_add = desired_clients - poster.clients.length -
+                client_promises.length
+            1.upto(should_add) do
+                client_promises.push(poster.fetch_new_client_async.execute)
+            end
 
-        logger.debug("Awaiting post promise..")
-        promise.execute().value
-        if promise.fulfilled?
-            logger.debug("Promise completed. Sleeping..")
-        elsif promise.rejected?
-            logger.debug("Promise failed: ")
-            raise promise.reason
+            if should_add > 0
+                logger.debug("Scheduled #{should_add} new clients to be fetched")
+            end
         end
-        sleep(40)
+
+        # Check previously scheduled clients
+        client_promises.each do |promise|
+            if promise.fulfilled?
+                logger.debug("Client fetched and added to poster client list")
+                poster.clients.push(promise.value)
+            elsif promise.rejected?
+                reason = promise.reason
+                logger.warn("Fetch client promise failed: #{reason.class}"\
+                " #{reason.backtrace}")
+            end
+        end
+
+        client_promises.delete_if do |promise|
+            promise.rejected? || promise.fulfilled?
+        end
+
+        post_promises.each do |promise|
+            if promise.fulfilled?
+                logger.debug("Post promise completed. Scheduling one more")
+                post_promises
+                    .push(poster.shitpost(board, thread_number).execute)
+            elsif promise.rejected?
+                logger.debug("Post promise failed: ")
+                raise promise.reason
+            end
+        end
+        post_promises.delete_if do |promise|
+            promise.rejected? || promise.fulfilled?
+        end
+
+        sleep(0.02)
     rescue Lyg::FourChanPostError => exc
         logger.debug("Post rejected. (#{exc.message}) #{exc.backtrace.inspect}")
         exit(1)
+    rescue StandardError => exc
+        logger.warn("Something fucked up: (#{exc.class}: #{exc.message})"\
+        " #{exc.backtrace.inspect}")
+        raise exc
     end
 end

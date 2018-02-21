@@ -13,6 +13,9 @@ require "logging"
 module Lyg
     # Represents a client for 4chan.org.
     class FourChanClient < HttpClient
+        # Regex matching a warning message for invalid captchas
+        CAPTCHA_MISTYPED = /Error: You seem to have mistyped the CAPTCHA/
+
         def initialize(transport = RestClientHttpTransport.new,
                 host = "http://a.4cdn.org")
             @host = host
@@ -37,14 +40,17 @@ module Lyg
             banned_reg = /Error: You are/
             disabled_reg = /Posting from your ISP, IP range, or country has been blocked/
             archived_reg = /Error: You cannot reply to this thread anymore./
-            mistyped_reg = /Error: You seem to have mistyped the CAPTCHA/
+            timeout_reg = /Error: You must wait/
+            
             unless success_reg.match(response.content)
                 if banned_reg.match(response.content) ||
                     disabled_reg.match(response.content)
                     raise FourChanBannedError, "Your IP is banned"
+                elsif timeout_reg.match(response.content)
+                    raise FourChanTimeoutError, "Your IP is timed out"
                 elsif archived_reg.match(response.content)
                     raise FourChanArchivedError, "Thread is archived"
-                elsif mistyped_reg.match(response.content)
+                elsif CAPTCHA_MISTYPED.match(response.content)
                     raise FourChanCaptchaError, "The captcha was not valid"
                 else
                     @logger.warn("Unknown content: #{response.content}")
@@ -69,14 +75,13 @@ module Lyg
 
                 return thread
             rescue ParserError => exc
-                raise FourChanError, "Could not parse thread from content "\
-                "(#{exc})"
+                raise FourChanError, "Could not parse thread from content"
             end
         end
 
         # Returns a promise that will eventually yield the thread on given board
         # and number
-        def get_thread_async(board, number, executor = :task)
+        def get_thread_async(board, number, executor)
             return Concurrent::Promise.new(executor: executor) do
                 get_thread(board, number)
             end
@@ -106,7 +111,7 @@ module Lyg
 
         # Returns a promise that will eventually yield a list of thread numbers
         # for a given board
-        def get_thread_numbers_async(board, executor = :task)
+        def get_thread_numbers_async(board, executor)
             return Concurrent::Promise.new(executor: executor) do
                 get_thread_numbers(board)
             end
@@ -115,18 +120,20 @@ module Lyg
         # Returns whether this client is banned or not
         def get_ban_status(captcha_response)
             content = HttpMultiPartContent.new
-            content.parts["g-recaptcha-answer"] = captcha_response
+            content.parts["g-recaptcha-response"] = captcha_response
 
-            request = HttpRequest.new(:post, @host)
+            request = HttpRequest.new(:post, "https://www.4chan.org/banned")
             request.content = content
             response = execute(request)
 
             success_reg = /You are not banned/
-            banned_reg = /You are banned/
+            banned_reg = /You are banned|You have been permanently banned from|The name you were posting with was/
             if success_reg.match(response.content)
                 return false
             elsif banned_reg.match(response.content)
                 return true
+            elsif CAPTCHA_MISTYPED.match(response.content)
+                raise FourChanCaptchaError, "The captcha was not valid"
             else
                 @logger.warn("Unknown content: #{response.content}")
                 raise FourChanHttpError, "Unknown content received by server"
@@ -136,15 +143,16 @@ module Lyg
         def execute(request)
             begin
                 response = super(request)
-                if response.code != 200
-                    raise FourChanHttpError, "Server responded with"\
-                        " code: #{response.code}"
-                end
-                response.parser = JsonParser.new
-                return response
             rescue HttpConnectionError => exc
                 raise FourChanHttpError, "Failed to execute request"
             end
+
+            if response.code != 200
+                raise FourChanHttpError, "Server responded with code: #{response.code}"
+            end
+            response.parser = JsonParser.new
+
+            return response
         end
 
         # Parses thread information from an OP
