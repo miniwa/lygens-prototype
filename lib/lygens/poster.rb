@@ -1,5 +1,6 @@
 require "lygens/four_chan/comment"
 require "lygens/four_chan/client"
+require "lygens/client_pool"
 require "logging"
 require "concurrent"
 
@@ -15,7 +16,7 @@ module Lyg
             @executor = executor
 
             @source_boards = Concurrent::Array.new
-            @clients = Concurrent::Array.new
+            @client_pool = LygensClientPool.new(60)
             @logger = Logging.logger[self]
         end
 
@@ -45,12 +46,13 @@ module Lyg
                 @logger.debug("Attempting to post..")
 
                 begin
+                    @client_pool.set_timestamp(post_client, Time.now)
                     post_client.post(board, thread.op.number, comment, answer)
                 rescue FourChanBannedError, FourChanCaptchaError,
                     FourChanHttpError, FourChanTimeoutError => exc
                     if exc.is_a?(FourChanBannedError)
                         @logger.debug("Comment rejected because of IP ban")
-                        @clients.delete(post_client)
+                        @client_pool.remove(post_client)
                         post_client = wait_for_client
                         answer = @solver.get_answer
                     elsif exc.is_a?(FourChanCaptchaError)
@@ -58,16 +60,17 @@ module Lyg
                         answer = @solver.get_answer
                     elsif exc.is_a?(FourChanTimeoutError)
                         @logger.debug("This ip is timed out")
-                        sleep(5)
+                        post_client = wait_for_client
                         answer = @solver.get_answer
                     else
                         @logger.debug("Http error when trying to post")
-                        @clients.delete(post_client)
+                        @client_pool.remove(post_client)
                         post_client = wait_for_client
                     end
 
                     retry
                 end
+
                 @logger.debug("Sucessfully posted comment")
             end
         end
@@ -83,25 +86,20 @@ module Lyg
                     client.post("v", 1, "hi", "token")
                 rescue FourChanCaptchaError
                     @logger.debug("Passed sanity check")
-                    answer_promise = @solver.get_answer_async(@executor).execute
                 rescue FourChanHttpError, FourChanPostError
                     @logger.debug("Proxy test reports error, trying another..")
                     retry
                 end
 
-                answer = answer_promise.value
-                if answer_promise.rejected?
-                    raise answer_promise.reason
-                end
-
+                answer = @solver.get_answer
                 begin
+
                     @logger.debug("Checking proxy ban status..")
                     unless client.get_ban_status(answer)
                         @logger.debug("Proxy is whitelisted")
                         return client
                     end
                     @logger.debug("Proxy is banned.")
-                    answer_promise = @solver.get_answer_async(@executor).execute
                 rescue FourChanCaptchaError
                     @logger.debug("Invalid captcha reported when checking ban")
                     answer = @solver.get_answer
@@ -119,11 +117,12 @@ module Lyg
 
         def wait_for_client
             while true
-                if @clients.any?
-                    return @clients.sample
-                else
-                    sleep 0.1
+                client = @client_pool.get_cool_client
+                unless client.nil?
+                    @client_pool.set_timestamp(client, Time.now + 60)
+                    return client
                 end
+                sleep 0.1
             end
         end
 
@@ -151,7 +150,7 @@ module Lyg
                         end
                     end
                 end
-            rescue Exception => exc
+            rescue StandardError => exc
                 @logger.warn("Unhandled exception when getting reply"\
                 "(#{exc.class} #{exc.message}) #{exc.backtrace}")
                 raise exc
@@ -187,6 +186,6 @@ module Lyg
             end
         end
 
-        attr_accessor :posts_made, :source_boards, :clients
+        attr_accessor :posts_made, :source_boards, :client_pool
     end
 end

@@ -9,28 +9,41 @@ Logging.logger.root.level = :debug
 Logging.logger.root.appenders = Logging.appenders.stdout
 logger = Logging.logger["main"]
 captcha_api_key = "11346f1d5172530024ab2dc6ea6dbe05"
+proxy_filename = "proxies.txt"
 
 # Clients
 transport = Lyg::RestClientHttpTransport.new
 client = Lyg::FourChanClient.new(transport)
-proxy_client = Lyg::GimmeProxyClient.new(transport)
 captcha_client = Lyg::AntiCaptchaClient.new(transport,
     captcha_api_key)
 solver = Lyg::LygensCaptchaSolver.new(captcha_client)
 
+# Thread pool
+pool = Concurrent::ThreadPoolExecutor.new(min_threads: 5, max_queue: 0)
+
+# Proxy
+lines = File.read(proxy_filename)
+proxies = Lyg::Util.parse_proxy_lines(lines)
+logger.debug("Parsed #{proxies.length} proxies from #{proxy_filename}")
+
+#logger.debug("Removing dead proxies..")
+alive = Lyg::Util.remove_dead_proxies(proxies, pool)
+logger.debug("#{alive.length} alive proxies remaining")
+
+#proxy_client = Lyg::GimmeProxyClient.new(transport)
+proxy_client = Lyg::ProxyListClient.new(proxies.shuffle)
+
 # Create poster
-pool = Concurrent::ThreadPoolExecutor.new(min_threads: 5,
-    max_threads: 50, max_queue: 0)
 poster = Lyg::LygensPoster.new(transport, client,
     solver, proxy_client, pool)
 poster.source_boards.push("pol")
 
 # Payload
 board = "v"
-thread_number = "407468980"
+thread_number = "407563804"
 
 # Locals
-desired_clients = 4
+desired_clients = 5
 client_promises = []
 post_promises = [poster.shitpost(board, thread_number).execute]
 #post_promises = []
@@ -38,8 +51,8 @@ post_promises = [poster.shitpost(board, thread_number).execute]
 while true
     begin
         # Schedule new clients
-        if poster.clients.length < desired_clients
-            should_add = desired_clients - poster.clients.length -
+        if poster.client_pool.length < desired_clients
+            should_add = desired_clients - poster.client_pool.length -
                 client_promises.length
             1.upto(should_add) do
                 client_promises.push(poster.fetch_new_client_async.execute)
@@ -54,11 +67,11 @@ while true
         client_promises.each do |promise|
             if promise.fulfilled?
                 logger.debug("Client fetched and added to poster client list")
-                poster.clients.push(promise.value)
+                poster.client_pool.add(promise.value)
             elsif promise.rejected?
                 reason = promise.reason
-                logger.warn("Fetch client promise failed: #{reason.class}"\
-                " #{reason.backtrace}")
+                logger.warn("Fetch client promise failed: (#{reason.class}:"\
+                " #{reason.message}) #{reason.backtrace}")
             end
         end
 

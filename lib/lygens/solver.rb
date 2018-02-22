@@ -29,7 +29,7 @@ module Lyg
                     @logger.debug("Captcha task pending. Sleeping 5 seconds..")
                     sleep(5)
                 end
-            rescue Exception => exc
+            rescue StandardError => exc
                 @logger.warn("Unhandled exception when fetching captcha:"\
                 "(#{exc.class} #{exc.message}) #{exc.backtrace}")
                 raise exc

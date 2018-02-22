@@ -1,6 +1,9 @@
 # Main library file
 require "lygens/poster"
 require "lygens/solver"
+require "lygens/util"
+require "lygens/proxy"
+require "Lygens/client_pool"
 
 require "lygens/anti_captcha/client"
 require "lygens/anti_captcha/error"

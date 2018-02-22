@@ -2,6 +2,7 @@
 
 source "https://rubygems.org" do
     gem "concurrent-ruby"
+    gem "time_difference"
     gem "nokogiri"
     gem "rest-client"
     gem "rspec"
