@@ -92,7 +92,8 @@ module Lyg
             rescue RestClient::Exception
                 raise HttpConnectionError, "A transport error has occured"
             rescue Net::HTTPServerException, Net::HTTPFatalError, SocketError,
-                Errno::ECONNREFUSED, Errno::ECONNRESET, OpenSSL::SSL::SSLError
+                Errno::ECONNREFUSED, Errno::ECONNRESET, OpenSSL::SSL::SSLError,
+                Errno::EADDRNOTAVAIL
                 raise HttpConnectionError, "An enxpected transport error"\
                 " has occured"
             end

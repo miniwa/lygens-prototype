@@ -19,19 +19,16 @@ captcha_client = Lyg::AntiCaptchaClient.new(transport,
 solver = Lyg::LygensCaptchaSolver.new(captcha_client)
 
 # Thread pool
-pool = Concurrent::ThreadPoolExecutor.new(min_threads: 5, max_queue: 0)
+pool = Concurrent::ThreadPoolExecutor.new(min_threads: 5,
+    max_threads: 300, max_queue: 0)
 
 # Proxy
 lines = File.read(proxy_filename)
-proxies = Lyg::Util.parse_proxy_lines(lines)
+proxies = Lyg::Util.parse_proxy_lines(lines).shuffle
 logger.debug("Parsed #{proxies.length} proxies from #{proxy_filename}")
 
-#logger.debug("Removing dead proxies..")
-alive = Lyg::Util.remove_dead_proxies(proxies, pool)
-logger.debug("#{alive.length} alive proxies remaining")
-
-#proxy_client = Lyg::GimmeProxyClient.new(transport)
-proxy_client = Lyg::ProxyListClient.new(proxies.shuffle)
+proxy_client = Lyg::GimmeProxyClient.new(transport)
+#proxy_client = Lyg::ProxyListClient.new(proxies.shuffle)
 
 # Create poster
 poster = Lyg::LygensPoster.new(transport, client,
@@ -40,43 +37,82 @@ poster.source_boards.push("pol")
 
 # Payload
 board = "v"
-thread_number = "407563804"
+thread_number = "407690309"
 
 # Locals
-desired_clients = 5
-client_promises = []
-post_promises = [poster.shitpost(board, thread_number).execute]
-#post_promises = []
+unchecked = Concurrent::Array.new
+promises = Concurrent::Array.new
+max_requests = 150
+captcha_count = 0
+responsive = Concurrent::Array.new
+#post_promises = [poster.shitpost(board, thread_number).execute]
+post_promises = []
+unchecked += proxies
 
 while true
     begin
-        # Schedule new clients
-        if poster.client_pool.length < desired_clients
-            should_add = desired_clients - poster.client_pool.length -
-                client_promises.length
-            1.upto(should_add) do
-                client_promises.push(poster.fetch_new_client_async.execute)
+        if responsive.any?
+            available = responsive.length
+            space = max_requests - promises.length
+            if available > space
+                count = space
+            else
+                count = available
             end
 
-            if should_add > 0
-                logger.debug("Scheduled #{should_add} new clients to be fetched")
+            1.upto(count) do |index|
+                client = responsive.pop
+                promise = solver.get_answer_async(pool).then do |answer|
+                    begin
+                        logger.debug("Checking ban status of client..")
+                        client.get_ban_status(answer)
+                    rescue Lyg::FourChanError
+                        true
+                    end
+                end
+
+                promise = promise.then do |banned|
+                    if !banned
+                        logger.info("Not banned. Adding to clients..")
+                        poster.clients.add(client)
+                    else
+                        logger.debug("Client is banned")
+                    end
+                end
+                promises.push(promise.execute)
             end
         end
 
-        # Check previously scheduled clients
-        client_promises.each do |promise|
-            if promise.fulfilled?
-                logger.debug("Client fetched and added to poster client list")
-                poster.client_pool.add(promise.value)
-            elsif promise.rejected?
-                reason = promise.reason
-                logger.warn("Fetch client promise failed: (#{reason.class}:"\
-                " #{reason.message}) #{reason.backtrace}")
+        if unchecked.any?
+            available = unchecked.length
+            space = max_requests - promises.length
+            if available > space
+                count = space
+            else
+                count = available
+            end
+
+            1.upto(count) do |index|
+                proxy = unchecked.pop
+                client = Lyg::FourChanClient.new(transport)
+                client.proxy = proxy.uri
+                client.timeout = 5
+
+                promise = Lyg::Util.is_client_responsive_async(client, pool).then do |value|
+                    if value
+                        responsive.push(client)
+                    end
+                end
+                promises.push(promise.execute)
             end
         end
-
-        client_promises.delete_if do |promise|
-            promise.rejected? || promise.fulfilled?
+        promises.each do |promise|
+            if promise.rejected?
+                raise promise.reason
+            end
+        end
+        promises.delete_if do |promise|
+            promise.complete?
         end
 
         post_promises.each do |promise|

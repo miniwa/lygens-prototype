@@ -1,5 +1,6 @@
 require "lygens/http/client"
 require "socket"
+require "logging"
 
 module Lyg
     module Util
@@ -22,62 +23,23 @@ module Lyg
             return proxies
         end
 
-        def self.remove_dead_proxies(proxies, executor)
+        def self.is_client_responsive(client)
             logger = Logging.logger[self]
-            promises = []
-            executed = []
-            alive = []
-
-            proxies.each do |proxy|
-                promises.push(is_proxy_dead_async(proxy, executor))
+            begin
+                client.post("v", 1, "comment", "token")
+            rescue FourChanCaptchaError
+                logger.debug("Passed response test")
+                return true
+            rescue StandardError
+                return false
             end
 
-            logger.debug("Scheduled #{promises.length} proxy checks..")
-            while promises.any?
-                logger.debug("#{promises.length} promises remaining..")
-                executed.each do |promise|
-                    if promise.fulfilled?
-                        logger.debug("Proxy is alive!")
-                        alive.push(promise.value)
-                    elsif promise.rejected?
-                        logger.debug("Proxy rejected: #{promise.reason}")
-                    end
-                end
-
-                executed.delete_if do |promise|
-                    promise.complete?
-                end
-                
-                if promises.any?
-                    desired = 500 - executed.length
-                    1.upto(desired) do
-                        unless promises.any?
-                            break
-                        end
-                        promise = promises[0]
-                        executed.push(promise.execute)
-                        promises.delete(promise)
-                    end
-                end
-
-                sleep 0.02
-            end
-
-            return alive
+            return false
         end
 
-        def self.is_proxy_dead(proxy)
-            socket = Socket.new(
-                Socket::Constants::AF_INET, Socket::Constants::SOCK_STREAM, 0)
-            addr = Socket.pack_sockaddr_in(proxy.port, proxy.ip)
-            socket.connect(addr)
-
-            return proxy
-        end
-        
-        def self.is_proxy_dead_async(proxy, executor)
+        def self.is_client_responsive_async(client, executor)
             return Concurrent::Promise.new(executor: executor) do
-                is_proxy_dead(proxy)
+                is_client_responsive(client)
             end
         end
     end
